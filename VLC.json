@@ -1,0 +1,57 @@
+{
+  "name": "VLC source",
+  "subtitle": "VLC",
+  "description": "VLC",
+  "iconURL": "https://i.imgur.com/csVDk7v.png",
+  "website": "https://www.videolan.org/",
+  "patreonURL": "https://patreon.com/stefansundin",
+  "tintColor": "#6156e2",
+  "featuredApps": [
+    "org.videolan.vlc-ios"
+  ],
+  "apps": [
+    {
+      "name": "VLC",
+      "bundleIdentifier": "org.videolan.vlc-ios",
+      "marketplaceID": "650377962",
+      "developerName": "Jean-Baptiste Kempf",
+      "subtitle": "VLC",
+      "localizedDescription": "VLC hacked mod",
+      "iconURL": "https://i.imgur.com/vmYLvh8.png",
+      "tintColor": "#6156e2",
+      "category": "photo-video",
+      "screenshots": {
+        "iphone": [],
+        "ipad": [
+          "https://i.imgur.com/AwMQ351.png",
+          "https://i.imgur.com/CEiIpZ7.png",
+          "https://i.imgur.com/fU2PDCy.png",
+          {
+            "imageURL": "https://i.imgur.com/WY0ak0Y.jpeg",
+            "width": 1730,
+            "height": 1291
+          }
+        ]
+      },
+      "versions": [
+        {
+          "downloadURL": "https://get.videolan.org/vlc-iOS/2.8.5/vlc-ios-2.8.5.ipa",
+          "size": 84800000,
+          "version": "3.0.23",
+          "buildVersion": "",
+          "date": "2026-01-07T16:00:00+08:00",
+          "localizedDescription": null,
+          "minOSVersion": null
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "Privacy": "VLC Mobile\nThis privacy policy covers the use of the 'VLC for Android', 'VLC for WinRT' and 'VLC for iOS' / 'VLC for tvOS' applications.\nIt may not be applicable to other software produced or released by VideoLAN.\nVideoLAN does not collect any statistics, personal information, or analytics from our users, other than built in mechanisms that are present for all the mobile or embedded applications in their respective main distribution channels.\nThe mobile and embedded versions of VLC support video playback via various network transport protocols. At no point are cookies stored by the application.\nAuthentication credentials may be stored locally on the userâs device, but only upon the userâs explicit request. On iOS and tvOS, such credentials may be synchronised across the userâs devices through proprietary encryption mechanisms provided by the operating system, specifically Appleâs iCloud Keychain service.\nVideoLAN does not collect, access, store, or transmit any authentication credentials or related user information managed through this mechanism.\nThe 'VLC for iOS' / 'VLC media player' application on iOS and iPadOS provides users with the optional functionality to authenticate with their personal Google Drive accounts. This functionality enables users to stream media files stored in their Google Drive and to download such files to their iOS or iPadOS devices. Use of this feature is entirely optional, and the application remains fully operational without it. All playback and downloads of media content are initiated solely by the user.\nAt no point does the application access or store user credentials. Authentication is handled externally via the OAuth2 protocol, and the resulting session token is encrypted and securely stored in the system keychain provided by iOS and iPadOS. This token is automatically deleted upon user logout or session invalidation.\nNo Google user dataâincluding, but not limited to, login credentials, session tokens, or contact informationâis collected, stored, transferred, or disclosed to the VideoLAN non-profit organisation or any third party. As no such data is retained by the application or its developer, no mechanism for data deletion requests is applicable or required under relevant data protection legislation.\nMedia files explicitly downloaded by the user are stored locally on the userâs device and are protected by the security features inherent to the iOS and iPadOS platforms. Users retain full control over this content and may delete, move, or export files using standard operating system functionalities."
+        }
+      },
+      "patreon": {}
+    }
+  ],
+  "news": []
+}
