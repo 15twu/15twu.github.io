@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>終極四合一：全功能難度大師 Obby</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #1a1a2e;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; color: #fff;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden; touch-action: none;
+            transition: background 0.3s;
+        }
+        /* 頂部工具列 */
+        .top-bar {
+            position: absolute; top: 15px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: none; z-index: 5;
+        }
+        .info-panel { display: flex; gap: 10px; pointer-events: auto; }
+        #stageInfo {
+            font-size: 20px; font-weight: bold; color: #fff;
+            background: rgba(0,0,0,0.6); padding: 8px 18px;
+            border-radius: 20px; border: 1px solid #fff;
+        }
+        #diffLabel {
+            font-size: 16px; font-weight: bold; color: #fff;
+            background: #4fc3f7; padding: 8px 15px; border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .controls-panel { display: flex; gap: 10px; pointer-events: auto; }
+        .menu-btn {
+            background-color: #ff4081; color: white; border: none;
+            padding: 8px 18px; font-size: 16px; font-weight: bold;
+            border-radius: 20px; cursor: pointer; box-shadow: 0 4px 0 #c2185b;
+        }
+        .menu-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #c2185b; }
+        .diff-btn { background-color: #00e676; box-shadow: 0 4px 0 #00c853; }
+        .diff-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #00c853; }
+        
+        canvas {
+            background: linear-gradient(to bottom, #111, #222);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            border-radius: 15px; border: 4px solid #fff;
+            max-width: 95vw; max-height: 50vh;
+        }
+        .dpad {
+            display: flex; justify-content: space-between;
+            width: 90vw; max-width: 500px; margin-top: 20px;
+        }
+        .move-buttons { display: flex; gap: 15px; }
+        .btn {
+            background-color: rgba(255,255,255,0.1); border: 2px solid #fff; border-radius: 50%;
+            width: 75px; height: 75px; color: #fff; font-size: 32px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none; -webkit-user-select: none; touch-action: manipulation;
+        }
+        .btn:active { background-color: rgba(255,255,255,0.4); }
+        .jump-btn {
+            background-color: rgba(255, 183, 77, 0.3); border-color: #ffa726; color: white;
+            border-radius: 35px; width: 110px; font-size: 20px;
+        }
+
+        /* 📋 彈出選單共通樣式 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); flex-direction: column; align-items: center; justify-content: center; z-index: 20;
+        }
+        .menu-content {
+            background: #222; width: 85vw; max-width: 450px; height: 70vh;
+            border-radius: 20px; padding: 20px; display: flex; flex-direction: column; border: 2px solid #fff;
+        }
+        .menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #444; padding-bottom: 10px; }
+        .grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; overflow-y: auto; padding-right: 5px; flex-grow: 1; }
+        .grid-item { background: #333; border: 2px solid #555; border-radius: 10px; padding: 12px 0; font-size: 16px; font-weight: bold; color: #fff; text-align: center; cursor: pointer; }
+        .grid-item:active { background: #fff; color: #000; }
+        .close-btn { background: #555; color: white; border: none; padding: 6px 12px; border-radius: 10px; font-weight: bold; }
+
+        /* 難度選擇專用佈局 */
+        .diff-container { display: flex; flex-direction: column; gap: 15px; justify-content: center; flex-grow: 1; }
+        .diff-opt { width: 100%; padding: 15px 0; font-size: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; color: white; }
+
+        /* 🎉 通關畫面 */
+        #winScreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        #winScreen h1 { font-size: 80px; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; margin: 0 0 20px 0; animation: winAnim 0.5s infinite alternate; }
+        @keyframes winAnim { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .restart-btn { padding: 15px 40px; font-size: 24px; border-radius: 30px; border: none; background: #00ffcc; color: #000; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="info-panel">
+            <div id="stageInfo">Stage: 1 / 100</div>
+            <div id="diffLabel">P.3 輕鬆模式</div>
+        </div>
+        <div class="controls-panel">
+            <button class="menu-btn diff-btn" onclick="openDiffMenu()">切換難度 ⚙️</button>
+            <button class="menu-btn" onclick="openStageMenu()">選關 📋</button>
+        </div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <div class="dpad">
+        <div class="move-buttons">
+            <div class="btn" id="leftBtn">←</div>
+            <div class="btn" id="rightBtn">→</div>
+        </div>
+        <div class="btn jump-btn" id="jumpBtn">JUMP!</div>
+    </div>
+
+    <div id="stageMenu" class="modal">
+        <div class="menu-content">
+            <div class="menu-header">
+                <h2 style="margin:0;">選擇挑戰關卡</h2>
+                <button class="close-btn" onclick="closeModal('stageMenu')">關閉</button>
+            </div>
+            <div class="grid-container" id="gridContainer"></div>
+        </div>
+    </div>
+
+    <div id="diffMenu" class="modal">
+        <div class="menu-content" style="height: auto; max-height: 80vh;">
+            <div class="menu-header">
+                <h2 style="margin:0;">隨時切換難度</h2>
+                <button class="close-btn" onclick="closeModal('diffMenu')">關閉</button>
+            </div>
+            <div class="diff-container">
+                <button class="diff-opt" style="background: #4caf50;" onclick="setDifficulty(1)">🟢 P.3 輕鬆版 (大方塊/超好跳)</button>
+                <button class="diff-opt" style="background: #2196f3;" onclick="setDifficulty(2)">🔵 剛剛好版 (有移動平台/中等)</button>
+                <button class="diff-opt" style="background: #ff9800;" onclick="setDifficulty(3)">🟠 地獄高手版 (閃爍隱形/極限距離)</button>
+                <button class="diff-opt" style="background: #e91e63;" onclick="setDifficulty(4)">🔴 最最最難絕望版 (超重力/一像素)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="winScreen">
+        <h1>You win!!</h1>
+        <p id="winText" style="font-size: 24px; margin-bottom: 30px; font-weight: bold; text-align: center; max-width: 80%;"></p>
+        <button class="restart-btn" onclick="document.location.reload()">重新挑戰 🎮</button>
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let gravity = 0.44; 
+let gameActive = true;
+let currentStage = 1;
+const maxStages = 100;
+let currentDiff = 1; // 1: P.3, 2: 中等, 3: 地獄, 4: 絕望
+
+const player = {
+    x: 60, y: 200,
+    width: 32, height: 32,
+    color: "#ffeb3b",
+    xVelocity: 0, yVelocity: 0,
+    speed: 4.8, jumpForce: 10.4,
+    isGrounded: false
+};
+
+const keys = { left: false, right: false, space: false };
+let obstacles = [];
+let time = 0;
+
+function setDifficulty(diffNum) {
+    currentDiff = diffNum;
+    const labels = ["", "P.3 輕鬆模式 🟢", "剛剛好中等 🔵", "地獄高手模式 🟠", "最最最難絕望 🔴"];
+    const bgColors = ["", "#1a1a2e", "#0f172a", "#0f0c1b", "#000000"];
+    const borderColors = ["", "#fff", "#4fc3f7", "#ff3366", "#ff0000"];
+    
+    document.getElementById("diffLabel").innerText = labels[diffNum];
+    document.getElementById("diffLabel").style.backgroundColor = (diffNum===1?'#4caf50':diffNum===2?'#2196f3':diffNum===3?'#ff9800':'#e91e63');
+    document.body.style.backgroundColor = bgColors[diffNum];
+    canvas.style.borderColor = borderColors[diffNum];
+
+    // 根據難度即時調整物理數值
+    if (diffNum === 1) { // P.3
+        gravity = 0.44; player.width = 32; player.height = 32; player.speed = 4.8; player.jumpForce = 10.4; player.color = "#ffeb3b";
+    } else if (diffNum === 2) { // 中等
+        gravity = 0.46; player.width = 32; player.height = 32; player.speed = 4.8; player.jumpForce = 10.5; player.color = "#ffeb3b";
+    } else if (diffNum === 3) { // 地獄
+        gravity = 0.52; player.width = 26; player.height = 26; player.speed = 5.2; player.jumpForce = 11.2; player.color = "#00ffcc";
+    } else if (diffNum === 4) { // 絕望
+        gravity = 0.58; player.width = 22; player.height = 22; player.speed = 5.5; player.jumpForce = 12.0; player.color = "#ff0000";
+    }
+
+    closeModal('diffMenu');
+    resetPlayer();
+    generateStage(currentStage);
+}
+
+function generateStage(stageNum) {
+    obstacles = [];
+    time = 0;
+    
+    let baseProgress = stageNum / 100;
+    obstacles.push({ x: 0, y: 320, width: currentDiff<=2?150:70, height: 80, type: 'safe', color: '#81c784' });
+    obstacles.push({ x: 0, y: 393, width: 8000, height: 10, type: 'lava', color: '#ff5722' });
+    
+    let platformCount = 5;
+    let platWidth = 75;
+    let baseGap = 65;
+
+    if (currentDiff === 1) { // P.3
+        platformCount = 5; platWidth = 75; baseGap = 65 + (baseProgress * 22); if(baseGap > 87) baseGap = 87;
+    } else if (currentDiff === 2) { // 中等
+        platformCount = 5; platWidth = 65; baseGap = 70 + (baseProgress * 20);
+    } else if (currentDiff === 3) { // 地獄
+        platformCount = 5 + Math.floor(baseProgress * 6); platWidth = Math.max(35, 80 - (baseProgress * 45)); baseGap = 75 + (baseProgress * 45);
+    } else if (currentDiff === 4) { // 絕望
+        platformCount = 6 + Math.floor(baseProgress * 9); platWidth = Math.max(20, 40 - (baseProgress * 20)); baseGap = 80 + (baseProgress * 60);
+    }
+
+    let currentX = 180;
+    let currentY = 260;
+    const colors = ['#ff8a80', '#ffd54f', '#a7ffeb', '#b3e5fc', '#d1c4e9'];
+
+    for (let i = 0; i < platformCount; i++) {
+        currentX += baseGap + (currentDiff > 2 ? Math.random()*5 : 0);
+        currentY += (Math.random() * (currentDiff*30) - (currentDiff*15));
+        currentY = Math.max(currentDiff===4?100:180, Math.min(310, currentY));
+        
+        let platType = 'safe';
+        let platColor = currentDiff > 2 ? '#3d3d5c' : colors[i % colors.length];
+        let isMoving = false;
+        let isDisappearing = false;
+        
+        // 難度機制注入
+        if (currentDiff === 2 && stageNum >= 40 && i === 2) { isMoving = true; platColor = '#ba68c8'; }
+        if (currentDiff === 3) {
+            if (stageNum >= 30 && i % 3 === 1) { isMoving = true; platColor = '#ffcc00'; }
+            if (stageNum >= 60 && i % 3 === 2) { isDisappearing = true; platColor = '#ff3366'; }
+        }
+        if (currentDiff === 4) {
+            if (stageNum >= 10 && i % 3 === 1) { isMoving = true; platColor = '#ffdd00'; }
+            if (stageNum >= 20 && i % 3 === 2) { isDisappearing = true; platColor = '#ff0000'; }
+        }
+        
+        obstacles.push({
+            x: currentX, y: currentY, width: platWidth, height: currentDiff===4?10:22,
+            type: platType, color: platColor,
+            moving: isMoving, range: currentDiff===2?30:45+(baseProgress*25), speed: currentDiff===2?0.03:0.06+(baseProgress*0.04),
+            startY: currentY, disappearing: isDisappearing
+        });
+        currentX += platWidth;
+    }
+    
+    let endX = currentX + baseGap;
+    obstacles.push({ x: endX, y: 280, width: 150, height: 120, type: 'safe', color: '#4fc3f7' });
+    obstacles.push({ x: endX + 50, y: 200, width: 35, height: 80, type: 'win', color: '#ff4081' });
+}
+
+// 建立 1-100 選關按鈕
+const gridContainer = document.getElementById("gridContainer");
+for (let i = 1; i <= 100; i++) {
+    const item = document.createElement("div"); item.className = "grid-item"; item.innerText = i;
+    item.onclick = function() { selectStage(i); }; gridContainer.appendChild(item);
+}
+
+function openStageMenu() { document.getElementById("stageMenu").style.display = "flex"; gameActive = false; }
+function openDiffMenu() { document.getElementById("diffMenu").style.display = "flex"; gameActive = false; }
+function closeModal(id) { document.getElementById(id).style.display = "none"; gameActive = true; update(); }
+
+function selectStage(stageNum) {
+    currentStage = stageNum;
+    document.getElementById("stageInfo").innerText = "Stage: " + currentStage + " / 100";
+    closeModal('stageMenu'); resetPlayer(); generateStage(currentStage);
+}
+
+setupTouchButton("leftBtn", "left"); setupTouchButton("rightBtn", "right"); setupTouchButton("jumpBtn", "space");
+function setupTouchButton(elementId, keyName) {
+    const btn = document.getElementById(elementId);
+    btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
+    btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
+}
+
+function nextStage() {
+    currentStage++;
+    if (currentStage > maxStages) {
+        gameActive = false;
+        const winTexts = ["", "🎉 恭喜通關！P.3難度完全難唔倒你！", "🏆 太勁啦！你順利搞掂中等難度 100 關！", "🔥 神級操作！地獄100關都被你征服埋！", "👑 終極無敵天神！你居然通關到全宇宙最難嘅絕望難度！"];
+        document.getElementById("winText").innerText = winTexts[currentDiff];
+        document.getElementById("winScreen").style.display = "flex";
+    } else {
+        document.getElementById("stageInfo").innerText = "Stage: " + currentStage + " / 100";
+        resetPlayer(); generateStage(currentStage);
+    }
+}
+
+function resetPlayer() { player.x = 60; player.y = 200; player.xVelocity = 0; player.yVelocity = 0; }
+function checkCollision(rect1, rect2) { return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y; }
+
+generateStage(currentStage);
+
+function update() {
+    if (!gameActive) return;
+    time += 1;
+
+    let flashRate = currentDiff === 4 ? 80 : 110;
+    let flashVisible = currentDiff === 4 ? 20 : 35;
+    let isBlockVisible = (time % flashRate) < flashVisible;
+
+    obstacles.forEach(obj => { if (obj.moving) { obj.y = obj.startY + Math.sin(time * obj.speed) * obj.range; } });
+
+    if (keys.left) player.xVelocity = -player.speed;
+    else if (keys.right) player.xVelocity = player.speed;
+    else player.xVelocity = 0;
+
+    if (keys.space && player.isGrounded) { player.yVelocity = -player.jumpForce; player.isGrounded = false; }
+
+    player.yVelocity += gravity; player.x += player.xVelocity; player.y += player.yVelocity;
+    if (player.x < 0) player.x = 0;
+    if (player.y > canvas.height) resetPlayer();
+
+    player.isGrounded = false;
+
+    obstacles.forEach(obj => {
+        if (obj.disappearing && !isBlockVisible) return;
+        if (checkCollision(player, obj)) {
+            if (obj.type === 'lava') { resetPlayer(); } 
+            else if (obj.type === 'win') { nextStage(); } 
+            else if (obj.type === 'safe') {
+                if (player.yVelocity > 0 && (player.y + player.height - player.yVelocity) <= obj.y + 6) {
+                    player.y = obj.y - player.height; player.yVelocity = 0; player.isGrounded = true;
+                }
+            }
+        }
+    });
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let cameraX = player.x - 120; if (cameraX < 0) cameraX = 0;
+    ctx.save(); ctx.translate(-cameraX, 0);
+
+    obstacles.forEach(obj => {
+        if (obj.disappearing) { if (isBlockVisible) { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); } }
+        else { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); }
+    });
+
+    // 畫主角
+    ctx.fillStyle = player.color; ctx.fillRect(player.x, player.y, player.width, player.height);
+    if(currentDiff <= 2) {
+        ctx.fillStyle = "#333";
+        ctx.beginPath(); ctx.arc(player.x + 10, player.y + 11, 3.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(player.x + 22, player.y + 11, 3.5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#333"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(player.x + 16, player.y + 18, 5, 0, Math.PI); ctx.stroke();
+    } else {
+        ctx.fillStyle = "#000"; ctx.fillRect(player.x + (currentDiff===4?16:18), player.y + 4, 2, 2);
+    }
+
+    ctx.restore();
+    requestAnimationFrame(update);
+}
+update();
+</script>
+
+</body>
+</html>
