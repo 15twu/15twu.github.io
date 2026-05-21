@@ -149,6 +149,10 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// 載入你畀我嘅學校角色圖片 
+const playerImg = new Image();
+playerImg.src = 'https://lccs.edu.hk/img/support-and-ethos/moral-and-civic/characters/charles-2.png';
+
 let gravity = 0.44; 
 let gameActive = true;
 let currentStage = 1;
@@ -157,8 +161,7 @@ let currentDiff = 1; // 1: P.3, 2: 中等, 3: 地獄, 4: 絕望
 
 const player = {
     x: 60, y: 200,
-    width: 32, height: 32,
-    color: "#ffeb3b",
+    width: 32, height: 42, // 微調角色比例，配合張圖嘅身型
     xVelocity: 0, yVelocity: 0,
     speed: 4.8, jumpForce: 10.4,
     isGrounded: false
@@ -179,15 +182,15 @@ function setDifficulty(diffNum) {
     document.body.style.backgroundColor = bgColors[diffNum];
     canvas.style.borderColor = borderColors[diffNum];
 
-    // 根據難度即時調整物理數值
+    // 根據難度調整物理數值同角色大細
     if (diffNum === 1) { // P.3
-        gravity = 0.44; player.width = 32; player.height = 32; player.speed = 4.8; player.jumpForce = 10.4; player.color = "#ffeb3b";
+        gravity = 0.44; player.width = 32; player.height = 42; player.speed = 4.8; player.jumpForce = 10.4;
     } else if (diffNum === 2) { // 中等
-        gravity = 0.46; player.width = 32; player.height = 32; player.speed = 4.8; player.jumpForce = 10.5; player.color = "#ffeb3b";
+        gravity = 0.46; player.width = 32; player.height = 42; player.speed = 4.8; player.jumpForce = 10.5;
     } else if (diffNum === 3) { // 地獄
-        gravity = 0.52; player.width = 26; player.height = 26; player.speed = 5.2; player.jumpForce = 11.2; player.color = "#00ffcc";
+        gravity = 0.52; player.width = 24; player.height = 32; player.speed = 5.2; player.jumpForce = 11.2;
     } else if (diffNum === 4) { // 絕望
-        gravity = 0.58; player.width = 22; player.height = 22; player.speed = 5.5; player.jumpForce = 12.0; player.color = "#ff0000";
+        gravity = 0.58; player.width = 18; player.height = 24; player.speed = 5.5; player.jumpForce = 12.0;
     }
 
     closeModal('diffMenu');
@@ -231,7 +234,6 @@ function generateStage(stageNum) {
         let isMoving = false;
         let isDisappearing = false;
         
-        // 難度機制注入
         if (currentDiff === 2 && stageNum >= 40 && i === 2) { isMoving = true; platColor = '#ba68c8'; }
         if (currentDiff === 3) {
             if (stageNum >= 30 && i % 3 === 1) { isMoving = true; platColor = '#ffcc00'; }
@@ -256,7 +258,7 @@ function generateStage(stageNum) {
     obstacles.push({ x: endX + 50, y: 200, width: 35, height: 80, type: 'win', color: '#ff4081' });
 }
 
-// 建立 1-100 選關按鈕
+// 建立選關按鈕
 const gridContainer = document.getElementById("gridContainer");
 for (let i = 1; i <= 100; i++) {
     const item = document.createElement("div"); item.className = "grid-item"; item.innerText = i;
@@ -337,20 +339,18 @@ function update() {
     let cameraX = player.x - 120; if (cameraX < 0) cameraX = 0;
     ctx.save(); ctx.translate(-cameraX, 0);
 
+    // 畫關卡
     obstacles.forEach(obj => {
         if (obj.disappearing) { if (isBlockVisible) { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); } }
         else { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); }
     });
 
-    // 畫主角
-    ctx.fillStyle = player.color; ctx.fillRect(player.x, player.y, player.width, player.height);
-    if(currentDiff <= 2) {
-        ctx.fillStyle = "#333";
-        ctx.beginPath(); ctx.arc(player.x + 10, player.y + 11, 3.5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(player.x + 22, player.y + 11, 3.5, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = "#333"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(player.x + 16, player.y + 18, 5, 0, Math.PI); ctx.stroke();
-    } else {
-        ctx.fillStyle = "#000"; ctx.fillRect(player.x + (currentDiff===4?16:18), player.y + 4, 2, 2);
+    // 畫主角：直接用drawImage畫出你畀我張網址圖片！
+    try {
+        ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+    } catch(e) {
+        // 如果網絡載入唔切，用藍色方塊暫代
+        ctx.fillStyle = "#00bcd4"; ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
     ctx.restore();
