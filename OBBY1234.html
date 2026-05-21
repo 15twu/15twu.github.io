@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>終極四合一：全功能難度大師 Obby</title>
+    <title>終極四合一：全功能難度大師 Obby (主角 1.5x 放大版)</title>
     <style>
         body {
             margin: 0; padding: 0;
@@ -65,7 +65,6 @@
             border-radius: 35px; width: 110px; font-size: 20px;
         }
 
-        /* 📋 彈出選單共通樣式 */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.85); flex-direction: column; align-items: center; justify-content: center; z-index: 20;
@@ -80,11 +79,9 @@
         .grid-item:active { background: #fff; color: #000; }
         .close-btn { background: #555; color: white; border: none; padding: 6px 12px; border-radius: 10px; font-weight: bold; }
 
-        /* 難度選擇專用佈局 */
         .diff-container { display: flex; flex-direction: column; gap: 15px; justify-content: center; flex-grow: 1; }
         .diff-opt { width: 100%; padding: 15px 0; font-size: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; color: white; }
 
-        /* 🎉 通關畫面 */
         #winScreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
         #winScreen h1 { font-size: 80px; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; margin: 0 0 20px 0; animation: winAnim 0.5s infinite alternate; }
         @keyframes winAnim { from { transform: scale(1); } to { transform: scale(1.1); } }
@@ -149,7 +146,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 載入你畀我嘅學校角色圖片 
 const playerImg = new Image();
 playerImg.src = 'https://lccs.edu.hk/img/support-and-ethos/moral-and-civic/characters/charles-2.png';
 
@@ -157,11 +153,12 @@ let gravity = 0.44;
 let gameActive = true;
 let currentStage = 1;
 const maxStages = 100;
-let currentDiff = 1; // 1: P.3, 2: 中等, 3: 地獄, 4: 絕望
+let currentDiff = 1; 
 
 const player = {
     x: 60, y: 200,
-    width: 32, height: 42, // 微調角色比例，配合張圖嘅身型
+    // 原始尺寸大小乘上 1.5 倍 (原本 32x42 變成 48x63)
+    width: 48, height: 63, 
     xVelocity: 0, yVelocity: 0,
     speed: 4.8, jumpForce: 10.4,
     isGrounded: false
@@ -182,15 +179,15 @@ function setDifficulty(diffNum) {
     document.body.style.backgroundColor = bgColors[diffNum];
     canvas.style.borderColor = borderColors[diffNum];
 
-    // 根據難度調整物理數值同角色大細
+    // 所有模式下嘅主角尺寸全部按比例放大 1.5 倍
     if (diffNum === 1) { // P.3
-        gravity = 0.44; player.width = 32; player.height = 42; player.speed = 4.8; player.jumpForce = 10.4;
+        gravity = 0.44; player.width = 48; player.height = 63; player.speed = 4.8; player.jumpForce = 10.4;
     } else if (diffNum === 2) { // 中等
-        gravity = 0.46; player.width = 32; player.height = 42; player.speed = 4.8; player.jumpForce = 10.5;
+        gravity = 0.46; player.width = 48; player.height = 63; player.speed = 4.8; player.jumpForce = 10.5;
     } else if (diffNum === 3) { // 地獄
-        gravity = 0.52; player.width = 24; player.height = 32; player.speed = 5.2; player.jumpForce = 11.2;
+        gravity = 0.52; player.width = 36; player.height = 48; player.speed = 5.2; player.jumpForce = 11.2;
     } else if (diffNum === 4) { // 絕望
-        gravity = 0.58; player.width = 18; player.height = 24; player.speed = 5.5; player.jumpForce = 12.0;
+        gravity = 0.58; player.width = 27; player.height = 36; player.speed = 5.5; player.jumpForce = 12.0;
     }
 
     closeModal('diffMenu');
@@ -203,20 +200,21 @@ function generateStage(stageNum) {
     time = 0;
     
     let baseProgress = stageNum / 100;
-    obstacles.push({ x: 0, y: 320, width: currentDiff<=2?150:70, height: 80, type: 'safe', color: '#81c784' });
+    // 配合角色放大，起點平台稍微拓寬，站得更穩
+    obstacles.push({ x: 0, y: 320, width: currentDiff<=2?180:90, height: 80, type: 'safe', color: '#81c784' });
     obstacles.push({ x: 0, y: 393, width: 8000, height: 10, type: 'lava', color: '#ff5722' });
     
     let platformCount = 5;
     let platWidth = 75;
     let baseGap = 65;
 
-    if (currentDiff === 1) { // P.3
+    if (currentDiff === 1) { 
         platformCount = 5; platWidth = 75; baseGap = 65 + (baseProgress * 22); if(baseGap > 87) baseGap = 87;
-    } else if (currentDiff === 2) { // 中等
+    } else if (currentDiff === 2) { 
         platformCount = 5; platWidth = 65; baseGap = 70 + (baseProgress * 20);
-    } else if (currentDiff === 3) { // 地獄
+    } else if (currentDiff === 3) { 
         platformCount = 5 + Math.floor(baseProgress * 6); platWidth = Math.max(35, 80 - (baseProgress * 45)); baseGap = 75 + (baseProgress * 45);
-    } else if (currentDiff === 4) { // 絕望
+    } else if (currentDiff === 4) { 
         platformCount = 6 + Math.floor(baseProgress * 9); platWidth = Math.max(20, 40 - (baseProgress * 20)); baseGap = 80 + (baseProgress * 60);
     }
 
@@ -258,7 +256,6 @@ function generateStage(stageNum) {
     obstacles.push({ x: endX + 50, y: 200, width: 35, height: 80, type: 'win', color: '#ff4081' });
 }
 
-// 建立選關按鈕
 const gridContainer = document.getElementById("gridContainer");
 for (let i = 1; i <= 100; i++) {
     const item = document.createElement("div"); item.className = "grid-item"; item.innerText = i;
@@ -339,17 +336,15 @@ function update() {
     let cameraX = player.x - 120; if (cameraX < 0) cameraX = 0;
     ctx.save(); ctx.translate(-cameraX, 0);
 
-    // 畫關卡
     obstacles.forEach(obj => {
         if (obj.disappearing) { if (isBlockVisible) { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); } }
         else { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); }
     });
 
-    // 畫主角：直接用drawImage畫出你畀我張網址圖片！
+    // 畫 1.5 倍放大版主角
     try {
         ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
     } catch(e) {
-        // 如果網絡載入唔切，用藍色方塊暫代
         ctx.fillStyle = "#00bcd4"; ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
