@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sky Fighter Mobile - God Mode</title>
+    <title>Sky Fighter Mobile - 10,000 Pts</title>
     <style>
         * {
             box-sizing: border-box;
@@ -104,8 +104,8 @@
 
     <div id="game-container">
         <div id="ui">
-            <div id="score-display">SCORE: 0 / 3000</div>
-            <div id="lives-display">LIVES: 100,000,000,000</div>
+            <div id="score-display">SCORE: 0 / 10000</div>
+            <div id="lives-display">LIVES: ❤️ 100,000,000,000</div>
         </div>
         
         <div id="game-over-screen">
@@ -114,7 +114,7 @@
             <button id="restart-btn">TAP TO PLAY AGAIN</button>
         </div>
 
-        <div class="hint">GOD MODE ACTIVE • Drag to move</div>
+        <div class="hint">Target: 10,000 Points | Drag to move</div>
         
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -136,7 +136,6 @@
         canvas.height = V_HEIGHT;
 
         let score = 0;
-        // Setting the starting lives to 100 Billion
         let lives = 100000000000; 
         let gameOver = false;
 
@@ -176,7 +175,7 @@
 
         function resetGame() {
             score = 0;
-            lives = 100000000000; // Reset back to 100 Billion
+            lives = 100000000000;
             gameOver = false;
             bullets = [];
             enemies = [];
@@ -191,8 +190,7 @@
         }
 
         function updateUI() {
-            scoreDisplay.innerText = `SCORE: ${score} / 3000`;
-            // Format number with commas for readability
+            scoreDisplay.innerText = `SCORE: ${score} / 10000`;
             livesDisplay.innerText = `LIVES: ❤️ ${lives.toLocaleString()}`;
         }
 
@@ -211,10 +209,10 @@
         }
 
         function checkWinCondition() {
-            if (score >= 3000) {
+            if (score >= 10000) {
                 const colors = ['#00ffcc', '#ffff00', '#ff00ff', '#00ff00', '#ff3333'];
-                for(let i = 0; i < 6; i++) {
-                    createExplosion(V_WIDTH / 2 + (Math.random() - 0.5) * 300, V_HEIGHT / 2 + (Math.random() - 0.5) * 150, colors[i % colors.length], 25);
+                for(let i = 0; i < 8; i++) {
+                    createExplosion(V_WIDTH / 2 + (Math.random() - 0.5) * 400, V_HEIGHT / 2 + (Math.random() - 0.5) * 200, colors[i % colors.length], 30);
                 }
                 endGame(true);
             }
@@ -240,7 +238,7 @@
                     height: 5,
                     speed: 9
                 });
-                player.cooldown = 12;
+                player.cooldown = 11; // Slightly faster fire rate to help hit 10k
             }
 
             bullets.forEach((bullet, index) => {
@@ -249,14 +247,15 @@
             });
 
             enemySpawnTimer++;
-            let spawnRate = Math.max(20, 45 - Math.floor(score / 500) * 4);
+            // Difficulty scales upward up to 10k
+            let spawnRate = Math.max(12, 45 - Math.floor(score / 1000) * 4);
             if (enemySpawnTimer > spawnRate) {
                 enemies.push({
                     x: V_WIDTH,
                     y: Math.random() * (V_HEIGHT - 40) + 10,
                     width: 42,
                     height: 28,
-                    speed: Math.random() * 2 + 3.5 + (score / 1500)
+                    speed: Math.random() * 3 + 3.5 + (score / 2500)
                 });
                 enemySpawnTimer = 0;
             }
@@ -291,7 +290,6 @@
                     player.y < enemy.y + enemy.height &&
                     player.y + player.height > enemy.y) {
                     
-                    // Trigger a player explosion visual effect but don't stop the game!
                     createExplosion(player.x + player.width/2, player.y + player.height/2, '#ffaa00');
                     enemies.splice(eIndex, 1);
                     lives--;
@@ -351,11 +349,11 @@
             if (isWin) {
                 endTitle.innerText = "YOU WIN!";
                 endTitle.className = "win-title";
-                finalScoreText.innerText = `Victory! You reached ${score} points!`;
+                finalScoreText.innerText = `Ultimate Victory! You reached ${score} points!`;
             } else {
                 endTitle.innerText = "GAME OVER";
                 endTitle.className = "lose-title";
-                finalScoreText.innerText = `Final Score: ${score} / 3000`;
+                finalScoreText.innerText = `Final Score: ${score} / 10000`;
             }
             gameOverScreen.style.display = 'flex';
         }
