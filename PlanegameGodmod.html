@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sky Fighter Mobile - 3000 Pts Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 800px;
+            max-height: 500px;
+            background: linear-gradient(to bottom, #0b1d3a, #183765);
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 2px #000;
+            z-index: 10;
+        }
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            display: none;
+            z-index: 20;
+        }
+        #game-over-screen h2 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .lose-title {
+            color: #ff3333;
+        }
+        .win-title {
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+        }
+        #restart-btn {
+            background: #00ffcc;
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hint {
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui">
+            <div id="score-display">SCORE: 0 / 3000</div>
+            <div id="lives-display">LIVES: ❤️❤️❤️</div>
+        </div>
+        
+        <div id="game-over-screen">
+            <h2 id="end-title" class="lose-title">GAME OVER</h2>
+            <p id="final-score">Final Score: 0</p>
+            <button id="restart-btn">TAP TO PLAY AGAIN</button>
+        </div>
+
+        <div class="hint">Drag to move • Reach 3000 points to WIN!</div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const endTitle = document.getElementById('end-title');
+        const finalScoreText = document.getElementById('final-score');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const V_WIDTH = 800;
+        const V_HEIGHT = 450;
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+
+        let score = 0;
+        let lives = 3;
+        let gameOver = false;
+
+        const player = {
+            x: 100,
+            y: V_HEIGHT / 2,
+            width: 50,
+            height: 30,
+            targetY: V_HEIGHT / 2,
+            targetX: 100,
+            cooldown: 0
+        };
+
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let enemySpawnTimer = 0;
+
+        function handleTouch(e) {
+            if (gameOver) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            
+            const scaleX = V_WIDTH / rect.width;
+            const scaleY = V_HEIGHT / rect.height;
+            
+            player.targetX = (touch.clientX - rect.left) * scaleX - 20;
+            player.targetY = (touch.clientY - rect.top) * scaleY - 15;
+        }
+
+        container.addEventListener('touchstart', handleTouch, { passive: false });
+        container.addEventListener('touchmove', handleTouch, { passive: false });
+        restartBtn.addEventListener('click', resetGame);
+        restartBtn.addEventListener('touchstart', (e) => { e.preventDefault(); resetGame(); });
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            gameOver = false;
+            bullets = [];
+            enemies = [];
+            particles = [];
+            player.x = 100;
+            player.y = V_HEIGHT / 2;
+            player.targetX = 100;
+            player.targetY = V_HEIGHT / 2;
+            gameOverScreen.style.display = 'none';
+            updateUI();
+            animate();
+        }
+
+        function updateUI() {
+            scoreDisplay.innerText = `SCORE: ${score} / 3000`;
+            livesDisplay.innerText = `LIVES: ${'❤️'.repeat(lives)}`;
+        }
+
+        function createExplosion(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    radius: Math.random() * 3 + 1,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    alpha: 1,
+                    color: color
+                });
+            }
+        }
+
+        function checkWinCondition() {
+            if (score >= 3000) {
+                const colors = ['#00ffcc', '#ffff00', '#ff00ff', '#00ff00', '#ff3333'];
+                for(let i = 0; i < 6; i++) {
+                    createExplosion(V_WIDTH / 2 + (Math.random() - 0.5) * 300, V_HEIGHT / 2 + (Math.random() - 0.5) * 150, colors[i % colors.length], 25);
+                }
+                endGame(true);
+            }
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            player.x += (player.targetX - player.x) * 0.2;
+            player.y += (player.targetY - player.y) * 0.2;
+
+            if (player.x < 0) player.x = 0;
+            if (player.x > V_WIDTH - player.width) player.x = V_WIDTH - player.width;
+            if (player.y < 0) player.y = 0;
+            if (player.y > V_HEIGHT - player.height) player.y = V_HEIGHT - player.height;
+
+            if (player.cooldown > 0) player.cooldown--;
+            if (player.cooldown === 0) {
+                bullets.push({
+                    x: player.x + player.width,
+                    y: player.y + 12,
+                    width: 15,
+                    height: 5,
+                    speed: 9
+                });
+                player.cooldown = 12;
+            }
+
+            bullets.forEach((bullet, index) => {
+                bullet.x += bullet.speed;
+                if (bullet.x > V_WIDTH) bullets.splice(index, 1);
+            });
+
+            enemySpawnTimer++;
+            // Enemies spawn slightly faster as you progress closer to 3000
+            let spawnRate = Math.max(20, 45 - Math.floor(score / 500) * 4);
+            if (enemySpawnTimer > spawnRate) {
+                enemies.push({
+                    x: V_WIDTH,
+                    y: Math.random() * (V_HEIGHT - 40) + 10,
+                    width: 42,
+                    height: 28,
+                    speed: Math.random() * 2 + 3.5 + (score / 1500)
+                });
+                enemySpawnTimer = 0;
+            }
+
+            enemies.forEach((enemy, eIndex) => {
+                enemy.x -= enemy.speed;
+
+                if (enemy.x + enemy.width < 0) {
+                    enemies.splice(eIndex, 1);
+                    lives--;
+                    updateUI();
+                    if (lives <= 0) endGame(false);
+                }
+
+                bullets.forEach((bullet, bIndex) => {
+                    if (bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y) {
+                        
+                        createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ff4444');
+                        enemies.splice(eIndex, 1);
+                        bullets.splice(bIndex, 1);
+                        score += 100;
+                        updateUI();
+                        checkWinCondition(); 
+                    }
+                });
+
+                if (player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y) {
+                    
+                    createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ffaa00');
+                    enemies.splice(eIndex, 1);
+                    lives--;
+                    updateUI();
+                    if (lives <= 0) endGame(false);
+                }
+            });
+
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) particles.splice(index, 1);
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            for (let i = 0; i < 15; i++) {
+                ctx.fillRect((Math.sin(i + score*0.01) * 400) + 400, (i * 30) % V_HEIGHT, 2, 2);
+            }
+
+            ctx.fillStyle = '#ffff00';
+            bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
+
+            enemies.forEach(enemy => {
+                ctx.fillStyle = '#ff3333';
+                ctx.fillRect(enemy.x, enemy.y + 9, enemy.width, 10);
+                ctx.fillRect(enemy.x + 15, enemy.y, 10, enemy.height);
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(enemy.x, enemy.y + 9, 5, 10);
+            });
+
+            ctx.fillStyle = '#00ffcc';
+            ctx.fillRect(player.x, player.y + 10, player.width, 10);
+            ctx.fillRect(player.x + 15, player.y, 10, player.height);
+            if (Math.random() > 0.4) {
+                ctx.fillStyle = '#ff6600';
+                ctx.fillRect(player.x - 8, player.y + 12, 8, 6);
+            }
+
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function endGame(isWin) {
+            gameOver = true;
+            if (isWin) {
+                endTitle.innerText = "YOU WIN!";
+                endTitle.className = "win-title";
+                finalScoreText.innerText = `Victory! You reached ${score} points!`;
+            } else {
+                endTitle.innerText = "GAME OVER";
+                endTitle.className = "lose-title";
+                finalScoreText.innerText = `Final Score: ${score} / 3000`;
+            }
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function animate() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(animate);
+            } else {
+                draw();
+                if(particles.length > 0) {
+                    particles.forEach((p, index) => {
+                        p.x += p.vx * 0.5;
+                        p.y += p.vy * 0.5;
+                        p.alpha -= 0.01;
+                        if (p.alpha <= 0) particles.splice(index, 1);
+                    });
+                    requestAnimationFrame(animate);
+                }
+            }
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>
