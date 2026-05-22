@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sky Fighter Mobile - 3000 Pts Edition</title>
+    <title>Sky Fighter Mobile - God Mode</title>
     <style>
         * {
             box-sizing: border-box;
@@ -105,7 +105,7 @@
     <div id="game-container">
         <div id="ui">
             <div id="score-display">SCORE: 0 / 3000</div>
-            <div id="lives-display">LIVES: ❤️❤️❤️</div>
+            <div id="lives-display">LIVES: 100,000,000,000</div>
         </div>
         
         <div id="game-over-screen">
@@ -114,7 +114,7 @@
             <button id="restart-btn">TAP TO PLAY AGAIN</button>
         </div>
 
-        <div class="hint">Drag to move • Reach 3000 points to WIN!</div>
+        <div class="hint">GOD MODE ACTIVE • Drag to move</div>
         
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -136,7 +136,8 @@
         canvas.height = V_HEIGHT;
 
         let score = 0;
-        let lives = 3;
+        // Setting the starting lives to 100 Billion
+        let lives = 100000000000; 
         let gameOver = false;
 
         const player = {
@@ -175,7 +176,7 @@
 
         function resetGame() {
             score = 0;
-            lives = 3;
+            lives = 100000000000; // Reset back to 100 Billion
             gameOver = false;
             bullets = [];
             enemies = [];
@@ -191,7 +192,8 @@
 
         function updateUI() {
             scoreDisplay.innerText = `SCORE: ${score} / 3000`;
-            livesDisplay.innerText = `LIVES: ${'❤️'.repeat(lives)}`;
+            // Format number with commas for readability
+            livesDisplay.innerText = `LIVES: ❤️ ${lives.toLocaleString()}`;
         }
 
         function createExplosion(x, y, color, count = 12) {
@@ -247,7 +249,6 @@
             });
 
             enemySpawnTimer++;
-            // Enemies spawn slightly faster as you progress closer to 3000
             let spawnRate = Math.max(20, 45 - Math.floor(score / 500) * 4);
             if (enemySpawnTimer > spawnRate) {
                 enemies.push({
@@ -290,7 +291,8 @@
                     player.y < enemy.y + enemy.height &&
                     player.y + player.height > enemy.y) {
                     
-                    createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ffaa00');
+                    // Trigger a player explosion visual effect but don't stop the game!
+                    createExplosion(player.x + player.width/2, player.y + player.height/2, '#ffaa00');
                     enemies.splice(eIndex, 1);
                     lives--;
                     updateUI();
