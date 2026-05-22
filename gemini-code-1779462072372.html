@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Multiplayer Hide & Seek</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: white;
+        }
+
+        h1 { margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        .connection-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            margin-right: 5px;
+            width: 180px;
+        }
+
+        .status-banner {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px 30px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            text-align: center;
+            min-width: 250px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 85px);
+            grid-gap: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: none; /* Disabled until connected and role is set */
+            opacity: 0.5;
+        }
+
+        .box {
+            width: 85px;
+            height: 85px;
+            background-color: #1e293b;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            transition: all 0.2s;
+        }
+
+        .box:hover { background-color: #334155; transform: scale(1.05); }
+        .box.revealed { background-color: #f8fafc; color: #0f172a; cursor: default; }
+        .box.my-hide-spot { border: 3px solid #38bdf8; background-color: #0f172a; }
+
+        #message { margin-top: 25px; font-size: 1.2rem; height: 30px; }
+        
+        button {
+            padding: 8px 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #7dd3fc; }
+    </style>
+</head>
+<body>
+
+    <h1>Online Hide & Seek</h1>
+    
+    <div class="connection-panel" id="conn-panel">
+        <div>Your ID: <strong id="my-id" style="color: #38bdf8;">Connecting to server...</strong></div>
+        <div style="margin-top: 10px;">
+            <input type="text" id="peer-id-input" placeholder="Paste friend's ID here">
+            <button onclick="connectToFriend()">Connect to Friend</button>
+        </div>
+    </div>
+
+    <div class="status-banner" id="status-banner">Waiting for Connection...</div>
+    <div class="grid" id="grid"></div>
+    <div id="message">Connect with a friend to start playing!</div>
+
+    <script>
+        const gridContainer = document.getElementById('grid');
+        const statusBanner = document.getElementById('status-banner');
+        const messageDisplay = document.getElementById('message');
+        const myIdDisplay = document.getElementById('my-id');
+        const peerInput = document.getElementById('peer-id-input');
+
+        const TOTAL_BOXES = 16;
+        let peer = null;
+        let conn = null;
+        
+        let myRole = ""; // "Hider" or "Seeker"
+        let hiddenBoxIndex = -1;
+        let isMyTurn = false;
+
+        // Initialize PeerJS
+        peer = new Peer();
+
+        peer.on('open', (id) => {
+            myIdDisplay.textContent = id;
+            statusBanner.textContent = "🔌 UNCONNECTED";
+        });
+
+        // Handle incoming connection (If you are the Host)
+        peer.on('connection', (connection) => {
+            conn = connection;
+            setupConnectionHandlers();
+            
+            // Host randomly decides roles
+            myRole = Math.random() < 0.5 ? "Hider" : "Seeker";
+            let peerRole = myRole === "Hider" ? "Seeker" : "Hider";
+            
+            conn.send({ type: 'START_GAME', role: peerRole });
+            beginRound();
+        });
+
+        // Connect to a friend (If you are the Guest)
+        function connectToFriend() {
+            const peerId = peerInput.value.trim();
+            if (!peerId) return alert("Please enter a valid ID");
+            
+            conn = peer.connect(peerId);
+            setupConnectionHandlers();
+        }
+
+        function setupConnectionHandlers() {
+            conn.on('open', () => {
+                document.getElementById('conn-panel').style.display = 'none';
+                statusBanner.textContent = "CONNECTED 🟢";
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'START_GAME') {
+                    myRole = data.role;
+                    beginRound();
+                }
+                else if (data.type === 'HIDER_READY') {
+                    if (myRole === "Seeker") {
+                        isMyTurn = true;
+                        messageDisplay.textContent = "Your friend has hidden! Click a box to find them.";
+                    }
+                }
+                else if (data.type === 'GUESS') {
+                    handleIncomingGuess(data.index);
+                }
+            });
+        }
+
+        function beginRound() {
+            gridContainer.innerHTML = '';
+            gridContainer.style.pointerEvents = 'auto';
+            gridContainer.style.opacity = '1';
+            hiddenBoxIndex = -1;
+
+            for (let i = 0; i < TOTAL_BOXES; i++) {
+                const box = document.createElement('div');
+                box.classList.add('box');
+                box.dataset.index = i;
+                box.addEventListener('click', handleBoxClick);
+                gridContainer.appendChild(box);
+            }
+
+            if (myRole === "Hider") {
+                statusBanner.textContent = "🙈 YOU ARE HIDING";
+                statusBanner.style.backgroundColor = "#b45309";
+                messageDisplay.textContent = "Pick a box to hide in!";
+                isMyTurn = true; 
+            } else {
+                statusBanner.textContent = "🔍 YOU ARE SEEKING";
+                statusBanner.style.backgroundColor = "#0369a1";
+                messageDisplay.textContent = "Waiting for your friend to hide...";
+                isMyTurn = false;
+            }
+        }
+
+        function handleBoxClick(event) {
+            if (!isMyTurn) return;
+            const clickedBox = event.target;
+            const clickedIndex = parseInt(clickedBox.dataset.index);
+
+            if (myRole === "Hider" && hiddenBoxIndex === -1) {
+                // Lock in hiding spot
+                hiddenBoxIndex = clickedIndex;
+                clickedBox.classList.add('my-hide-spot');
+                clickedBox.textContent = '👤';
+                messageDisplay.textContent = "Spot locked in! Waiting for your friend to guess...";
+                isMyTurn = false;
+                conn.send({ type: 'HIDER_READY' });
+            } 
+            else if (myRole === "Seeker") {
+                if (clickedBox.classList.contains('revealed')) return;
+                
+                // Send guess to the hider
+                isMyTurn = false;
+                messageDisplay.textContent = "Checking box...";
+                conn.send({ type: 'GUESS', index: clickedIndex });
+            }
+        }
+
+        function handleIncomingGuess(index) {
+            const targetedBox = gridContainer.children[index];
+            
+            if (myRole === "Hider") {
+                if (index === hiddenBoxIndex) {
+                    targetedBox.textContent = '💥';
+                    targetedBox.classList.add('revealed');
+                    messageDisplay.textContent = "Oh no! They found you! Game Over.";
+                    statusBanner.textContent = "💀 CAUGHT!";
+                } else {
+                    targetedBox.textContent = '❌';
+                    targetedBox.classList.add('revealed');
+                    messageDisplay.textContent = "They guessed wrong! Your turn to wait.";
+                    // Tell seeker it was a miss
+                    isMyTurn = true; 
+                    conn.send({ type: 'GUESS_RESULT', index: index, hit: false });
+                }
+            } 
+            else if (myRole === "Seeker") {
+                // This logic triggers when hider updates us via a bounce-back message
+                // Actually let's simplify: Hider directly processes, let's listen for GUESS_RESULT
+            }
+        }
+
+        // Add handler for guess results back to Seeker
+        peer.on('connection', (connection) => {
+            // Re-binding data for safety
+            connection.on('data', (data) => {
+                if (data.type === 'GUESS_RESULT') {
+                    const targetedBox = gridContainer.children[data.index];
+                    targetedBox.textContent = '❌';
+                    targetedBox.classList.add('revealed');
+                    messageDisplay.textContent = "Missed! Try another box.";
+                    isMyTurn = true;
+                }
+            });
+        });
+        
+        // Ensure guest handles results too
+        function setupConnectionHandlersAdditional() {
+            if(!conn) return;
+            conn.on('data', (data) => {
+                 if (data.type === 'GUESS_RESULT') {
+                    const targetedBox = gridContainer.children[data.index];
+                    targetedBox.textContent = '❌';
+                    targetedBox.classList.add('revealed');
+                    messageDisplay.textContent = "Missed! Try another box.";
+                    isMyTurn = true;
+                }
+                else if (data.type === 'GUESS' && myRole === 'Hider' && data.index === hiddenBoxIndex) {
+                     conn.send({ type: 'GAME_OVER_WIN', index: data.index });
+                }
+                else if (data.type === 'GAME_OVER_WIN') {
+                    const targetedBox = gridContainer.children[data.index];
+                    targetedBox.textContent = '🎉';
+                    targetedBox.classList.add('revealed');
+                    messageDisplay.textContent = "You found them! You Win!";
+                    statusBanner.textContent = "🏆 VICTORY!";
+                }
+            });
+        }
+        
+        // Quick patch to wrap data monitoring perfectly
+        setInterval(() => {
+            if (conn && !conn._patched) {
+                setupConnectionHandlersAdditional();
+                conn._patched = true;
+            }
+        }, 500);
+
+    </script>
+</body>
+</html>
