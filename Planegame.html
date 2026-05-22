@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sky Fighter Mobile</title>
+    <title>Sky Fighter Mobile - 3000 Pts Edition</title>
     <style>
         * {
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none; /* Prevents iOS pinch-to-zoom and scrolling */
+            touch-action: none;
         }
         body {
             margin: 0;
@@ -66,9 +66,16 @@
             z-index: 20;
         }
         #game-over-screen h2 {
-            color: #ff3333;
-            font-size: 36px;
+            font-size: 42px;
             margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .lose-title {
+            color: #ff3333;
+        }
+        .win-title {
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
         }
         #restart-btn {
             background: #00ffcc;
@@ -97,17 +104,17 @@
 
     <div id="game-container">
         <div id="ui">
-            <div id="score-display">SCORE: 0</div>
+            <div id="score-display">SCORE: 0 / 3000</div>
             <div id="lives-display">LIVES: ❤️❤️❤️</div>
         </div>
         
         <div id="game-over-screen">
-            <h2>GAME OVER</h2>
+            <h2 id="end-title" class="lose-title">GAME OVER</h2>
             <p id="final-score">Final Score: 0</p>
             <button id="restart-btn">TAP TO PLAY AGAIN</button>
         </div>
 
-        <div class="hint">Drag anywhere to move • Autofire active</div>
+        <div class="hint">Drag to move • Reach 3000 points to WIN!</div>
         
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -119,21 +126,19 @@
         const scoreDisplay = document.getElementById('score-display');
         const livesDisplay = document.getElementById('lives-display');
         const gameOverScreen = document.getElementById('game-over-screen');
+        const endTitle = document.getElementById('end-title');
         const finalScoreText = document.getElementById('final-score');
         const restartBtn = document.getElementById('restart-btn');
 
-        // Set internal canvas resolution constants
         const V_WIDTH = 800;
         const V_HEIGHT = 450;
         canvas.width = V_WIDTH;
         canvas.height = V_HEIGHT;
 
-        // Game State
         let score = 0;
         let lives = 3;
         let gameOver = false;
 
-        // Player Setup
         const player = {
             x: 100,
             y: V_HEIGHT / 2,
@@ -149,19 +154,16 @@
         let particles = [];
         let enemySpawnTimer = 0;
 
-        // Touch Event Handling for iOS
         function handleTouch(e) {
             if (gameOver) return;
-            e.preventDefault(); // Prevents scrolling/bouncing on iOS
+            e.preventDefault();
             
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
             
-            // Convert actual touch pixel coordinates to canvas virtual coordinates
             const scaleX = V_WIDTH / rect.width;
             const scaleY = V_HEIGHT / rect.height;
             
-            // Offset touch slightly so player's finger doesn't block the plane view
             player.targetX = (touch.clientX - rect.left) * scaleX - 20;
             player.targetY = (touch.clientY - rect.top) * scaleY - 15;
         }
@@ -188,38 +190,45 @@
         }
 
         function updateUI() {
-            scoreDisplay.innerText = `SCORE: ${score}`;
+            scoreDisplay.innerText = `SCORE: ${score} / 3000`;
             livesDisplay.innerText = `LIVES: ${'❤️'.repeat(lives)}`;
         }
 
-        function createExplosion(x, y, color) {
-            for (let i = 0; i < 12; i++) {
+        function createExplosion(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
                 particles.push({
                     x: x,
                     y: y,
                     radius: Math.random() * 3 + 1,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
                     alpha: 1,
                     color: color
                 });
             }
         }
 
+        function checkWinCondition() {
+            if (score >= 3000) {
+                const colors = ['#00ffcc', '#ffff00', '#ff00ff', '#00ff00', '#ff3333'];
+                for(let i = 0; i < 6; i++) {
+                    createExplosion(V_WIDTH / 2 + (Math.random() - 0.5) * 300, V_HEIGHT / 2 + (Math.random() - 0.5) * 150, colors[i % colors.length], 25);
+                }
+                endGame(true);
+            }
+        }
+
         function update() {
             if (gameOver) return;
 
-            // Smooth Interpolation (Lerp) for responsive touch movement
             player.x += (player.targetX - player.x) * 0.2;
             player.y += (player.targetY - player.y) * 0.2;
 
-            // Screen boundaries
             if (player.x < 0) player.x = 0;
             if (player.x > V_WIDTH - player.width) player.x = V_WIDTH - player.width;
             if (player.y < 0) player.y = 0;
             if (player.y > V_HEIGHT - player.height) player.y = V_HEIGHT - player.height;
 
-            // iOS Autofire System
             if (player.cooldown > 0) player.cooldown--;
             if (player.cooldown === 0) {
                 bullets.push({
@@ -229,30 +238,28 @@
                     height: 5,
                     speed: 9
                 });
-                player.cooldown = 12; // Controls firing rate
+                player.cooldown = 12;
             }
 
-            // Move Bullets
             bullets.forEach((bullet, index) => {
                 bullet.x += bullet.speed;
                 if (bullet.x > V_WIDTH) bullets.splice(index, 1);
             });
 
-            // Spawn Enemies
             enemySpawnTimer++;
-            let spawnRate = Math.max(18, 50 - Math.floor(score / 600) * 5);
+            // Enemies spawn slightly faster as you progress closer to 3000
+            let spawnRate = Math.max(20, 45 - Math.floor(score / 500) * 4);
             if (enemySpawnTimer > spawnRate) {
                 enemies.push({
                     x: V_WIDTH,
                     y: Math.random() * (V_HEIGHT - 40) + 10,
                     width: 42,
                     height: 28,
-                    speed: Math.random() * 2 + 3 + (score / 1200)
+                    speed: Math.random() * 2 + 3.5 + (score / 1500)
                 });
                 enemySpawnTimer = 0;
             }
 
-            // Enemies Logic & Collisions
             enemies.forEach((enemy, eIndex) => {
                 enemy.x -= enemy.speed;
 
@@ -260,10 +267,9 @@
                     enemies.splice(eIndex, 1);
                     lives--;
                     updateUI();
-                    if (lives <= 0) endGame();
+                    if (lives <= 0) endGame(false);
                 }
 
-                // Bullet hits enemy
                 bullets.forEach((bullet, bIndex) => {
                     if (bullet.x < enemy.x + enemy.width &&
                         bullet.x + bullet.width > enemy.x &&
@@ -275,10 +281,10 @@
                         bullets.splice(bIndex, 1);
                         score += 100;
                         updateUI();
+                        checkWinCondition(); 
                     }
                 });
 
-                // Player crashes into enemy
                 if (player.x < enemy.x + enemy.width &&
                     player.x + player.width > enemy.x &&
                     player.y < enemy.y + enemy.height &&
@@ -288,15 +294,14 @@
                     enemies.splice(eIndex, 1);
                     lives--;
                     updateUI();
-                    if (lives <= 0) endGame();
+                    if (lives <= 0) endGame(false);
                 }
             });
 
-            // Particles update
             particles.forEach((p, index) => {
                 p.x += p.vx;
                 p.y += p.vy;
-                p.alpha -= 0.025;
+                p.alpha -= 0.02;
                 if (p.alpha <= 0) particles.splice(index, 1);
             });
         }
@@ -304,17 +309,14 @@
         function draw() {
             ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
 
-            // Simple Starfield Background
             ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
             for (let i = 0; i < 15; i++) {
                 ctx.fillRect((Math.sin(i + score*0.01) * 400) + 400, (i * 30) % V_HEIGHT, 2, 2);
             }
 
-            // Draw Bullets
             ctx.fillStyle = '#ffff00';
             bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-            // Draw Enemies
             enemies.forEach(enemy => {
                 ctx.fillStyle = '#ff3333';
                 ctx.fillRect(enemy.x, enemy.y + 9, enemy.width, 10);
@@ -323,7 +325,6 @@
                 ctx.fillRect(enemy.x, enemy.y + 9, 5, 10);
             });
 
-            // Draw Player Plane
             ctx.fillStyle = '#00ffcc';
             ctx.fillRect(player.x, player.y + 10, player.width, 10);
             ctx.fillRect(player.x + 15, player.y, 10, player.height);
@@ -332,7 +333,6 @@
                 ctx.fillRect(player.x - 8, player.y + 12, 8, 6);
             }
 
-            // Draw Particles
             particles.forEach(p => {
                 ctx.save();
                 ctx.globalAlpha = p.alpha;
@@ -344,9 +344,17 @@
             });
         }
 
-        function endGame() {
+        function endGame(isWin) {
             gameOver = true;
-            finalScoreText.innerText = `Final Score: ${score}`;
+            if (isWin) {
+                endTitle.innerText = "YOU WIN!";
+                endTitle.className = "win-title";
+                finalScoreText.innerText = `Victory! You reached ${score} points!`;
+            } else {
+                endTitle.innerText = "GAME OVER";
+                endTitle.className = "lose-title";
+                finalScoreText.innerText = `Final Score: ${score} / 3000`;
+            }
             gameOverScreen.style.display = 'flex';
         }
 
@@ -355,10 +363,20 @@
             draw();
             if (!gameOver) {
                 requestAnimationFrame(animate);
+            } else {
+                draw();
+                if(particles.length > 0) {
+                    particles.forEach((p, index) => {
+                        p.x += p.vx * 0.5;
+                        p.y += p.vy * 0.5;
+                        p.alpha -= 0.01;
+                        if (p.alpha <= 0) particles.splice(index, 1);
+                    });
+                    requestAnimationFrame(animate);
+                }
             }
         }
 
-        // Start game automatically
         resetGame();
     </script>
 </body>
