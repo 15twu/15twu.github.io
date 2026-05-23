@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Maintenance & Mileage Assistant</title>
+    <style>
+        :root {
+            --primary: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --green: #27ae60;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--light);
+            margin: 0;
+            padding: 15px;
+            color: #333;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2, h3 { color: var(--dark); margin-top: 0; }
+        h1 { text-align: center; color: var(--primary); }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: var(--dark);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background-color: #34495e; }
+        .calc-btn { background-color: var(--green); }
+        .calc-btn:hover { background-color: #219150; }
+        .clear-btn {
+            background-color: #e74c3c;
+            padding: 8px;
+            font-size: 14px;
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+        .clear-btn:hover { background-color: #c0392b; }
+        .logout-btn {
+            background-color: #7f8c8d;
+            padding: 8px;
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 0;
+        }
+        .logout-btn:hover { background-color: #95a5a6; }
+        .result-box {
+            background: #e8f8f5;
+            padding: 12px;
+            border-left: 5px solid var(--green);
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: none;
+            border-radius: 4px;
+        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; line-height: 1.4; }
+        
+        #loginScreen { display: block; }
+        #appScreen { display: none; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-bottom: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h1>🚗 Car Assistant</h1>
+
+    <div id="loginScreen" class="card">
+        <h2>Sign In</h2>
+        <div id="errorBox" class="error-msg">Incorrect Username or Password!</div>
+        
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter username">
+        
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter password">
+        
+        <button onclick="handleLogin()" style="background-color: var(--primary);">Login</button>
+    </div>
+
+    <div id="appScreen">
+        
+        <div class="card">
+            <h2>⛽ Gas Mileage Calculator</h2>
+            <input type="date" id="mileageDate">
+            
+            <label for="distance">Distance Traveled (km or miles):</label>
+            <input type="number" id="distance" placeholder="e.g., 450" step="any">
+            
+            <label for="fuelLiters">Gas Filled (Liters):</label>
+            <input type="number" id="fuelLiters" placeholder="e.g., 40" step="any">
+            
+            <button onclick="calculateAndLogMileage()" class="calc-btn">Calculate & Save Mileage</button>
+            <div id="mileageResult" class="result-box"></div>
+            
+            <h3>Mileage History:</h3>
+            <ul id="mileageList"></ul>
+            <button onclick="clearMileageLog()" class="clear-btn">Clear Mileage History</button>
+        </div>
+
+        <div class="card">
+            <h2>🛢️ Log Oil Addition</h2>
+            <input type="date" id="logDate">
+            <input type="text" id="logAmount" placeholder="Amount added (e.g., 1 Quart)">
+            <button onclick="logOil()">Save to Log</button>
+            
+            <h3>Oil History:</h3>
+            <ul id="logList"></ul>
+            <button onclick="clearLog()" class="clear-btn">Clear Oil History</button>
+        </div>
+
+        <div style="text-align: center;">
+            <button onclick="handleLogout()" class="logout-btn">Sign Out</button>
+        </div>
+    </div>
+
+    <script>
+        // Set dates automatically on launch
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('logDate').value = todayStr;
+        document.getElementById('mileageDate').value = todayStr;
+
+        window.onload = function() {
+            const loginStatus = localStorage.getItem('isLoggedIn');
+            if (loginStatus === 'true') {
+                showApp();
+            }
+        };
+
+        function handleLogin() {
+            const userIn = document.getElementById('username').value;
+            const passIn = document.getElementById('password').value;
+            const errorBox = document.getElementById('errorBox');
+
+            if (userIn === "va5686" && passIn === "va5686") {
+                errorBox.style.display = "none";
+                localStorage.setItem('isLoggedIn', 'true');
+                showApp();
+                document.getElementById('username').value = "";
+                document.getElementById('password').value = "";
+            } else {
+                errorBox.style.display = "block";
+            }
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = "none";
+            document.getElementById('appScreen').style.display = "block";
+            displayLog();
+            displayMileageLog();
+        }
+
+        function handleLogout() {
+            localStorage.setItem('isLoggedIn', 'false');
+            document.getElementById('loginScreen').style.display = "block";
+            document.getElementById('appScreen').style.display = "none";
+        }
+
+        // --- GAS MILEAGE SYSTEM ---
+        function calculateAndLogMileage() {
+            const date = document.getElementById('mileageDate').value;
+            const distance = parseFloat(document.getElementById('distance').value);
+            const liters = parseFloat(document.getElementById('fuelLiters').value);
+            const resultBox = document.getElementById('mileageResult');
+
+            if (!distance || !liters || distance <= 0 || liters <= 0) {
+                return alert("Please enter valid positive numbers for distance and liters.");
+            }
+
+            // Calculation formula
+            const mileage = (distance / liters).toFixed(2);
+            
+            resultBox.innerHTML = `Your efficiency: ${mileage} per Liter`;
+            resultBox.style.display = "block";
+
+            // Save object data to storage
+            const newEntry = { date: date, distance: distance, liters: liters, result: mileage };
+            let currentMileageLogs = JSON.parse(localStorage.getItem('mileageLogs')) || [];
+            currentMileageLogs.push(newEntry);
+            localStorage.setItem('mileageLogs', JSON.stringify(currentMileageLogs));
+
+            displayMileageLog();
+            
+            // Clean fields
+            document.getElementById('distance').value = "";
+            document.getElementById('fuelLiters').value = "";
+        }
+
+        function displayMileageLog() {
+            const mList = document.getElementById('mileageList');
+            mList.innerHTML = "";
+            let currentMileageLogs = JSON.parse(localStorage.getItem('mileageLogs')) || [];
+            
+            currentMileageLogs.forEach(entry => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${entry.date}:</strong> ${entry.result} per Liter (${entry.distance} units / ${entry.liters}L)`;
+                mList.appendChild(li);
+            });
+        }
+
+        function clearMileageLog() {
+            if(confirm("Delete all mileage records?")) {
+                localStorage.removeItem('mileageLogs');
+                document.getElementById('mileageResult').style.display = "none";
+                displayMileageLog();
+            }
+        }
+
+        // --- OIL LOG SYSTEM ---
+        function logOil() {
+            const date = document.getElementById('logDate').value;
+            const amount = document.getElementById('logAmount').value;
+            if(!amount) return alert("Please enter an amount");
+
+            const newEntry = { date: date, amount: amount };
+            let currentLogs = JSON.parse(localStorage.getItem('oilLogs')) || [];
+            currentLogs.push(newEntry);
+
+            localStorage.setItem('oilLogs', JSON.stringify(currentLogs));
+            displayLog();
+            document.getElementById('logAmount').value = ""; 
+        }
+
+        function displayLog() {
+            const logList = document.getElementById('logList');
+            logList.innerHTML = ""; 
+            let currentLogs = JSON.parse(localStorage.getItem('oilLogs')) || [];
+            currentLogs.forEach(entry => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${entry.date}:</strong> Added ${entry.amount}`;
+                logList.appendChild(li);
+            });
+        }
+
+        function clearLog() {
+            if(confirm("Delete all oil history?")) {
+                localStorage.removeItem('oilLogs');
+                displayLog();
+            }
+        }
+    </script>
+</body>
+</html>
