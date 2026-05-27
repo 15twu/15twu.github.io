@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>25-26 自律·自理班際比賽管理系統 (全校30班完整版)</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent: #eab308;
+            --bg-dark: #0f172a;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang HK', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 側邊導航欄 */
+        .sidebar {
+            width: 260px;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            background-color: #172554;
+            text-align: center;
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            opacity: 0.8;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+        }
+
+        .nav-item i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 主內容區 */
+        .main-content {
+            margin-left: 260px;
+            flex-grow: 1;
+            padding: 40px;
+            max-width: 1400px;
+        }
+
+        .header-title {
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h2 {
+            font-size: 26px;
+            color: var(--primary);
+        }
+
+        .date-badge {
+            background-color: #eff6ff;
+            color: var(--primary-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* 視窗控制 */
+        .view-panel {
+            display: none;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        /* 儀表板/排名的網格佈局 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 卡片通用樣式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            padding: 24px;
+            margin-bottom: 25px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 評分表單元素 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: #f8fafc;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-light);
+            background-color: #fff;
+        }
+
+        /* 檢查項目檢查框樣式 */
+        .check-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .check-item:hover {
+            border-color: #cbd5e1;
+            background: #f1f5f9;
+        }
+
+        .check-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .check-item-title {
+            font-weight: 500;
+        }
+
+        .check-item-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .badge-score {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* 開關切換鈕 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* 按鈕樣式 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: var(--text-main);
+            width: auto;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        /* 表格與列表樣式 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .data-table th, .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* 龍虎榜名次樣式 */
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .rank-1 { background-color: #fef08a; color: #a16207; border: 1px solid #facc15; }
+        .rank-2 { background-color: #e2e8f0; color: #475569; border: 1px solid #cbd5e1; }
+        .rank-3 { background-color: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+        .rank-other { background-color: #f1f5f9; color: var(--text-muted); }
+
+        /* 書包重量速查提示區 */
+        .info-box {
+            background-color: #fffbeb;
+            border-left: 4px solid var(--accent);
+            padding: 16px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .score-display {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary-light);
+            text-align: center;
+            padding: 10px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 1px dashed var(--success);
+        }
+
+        /* 吐司彈出訊息 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>自律·自理 比賽</h1>
+            <p>2025-2026 校園班際競賽</p>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="switchView('dashboard')">
+                <i class="fa-solid fa-chart-line"></i> 競賽龍虎榜
+            </li>
+            <li class="nav-item" onclick="switchView('clean-form')">
+                <i class="fa-solid fa-broom"></i> 課室清潔評分
+            </li>
+            <li class="nav-item" onclick="switchView('weight-form')">
+                <i class="fa-solid fa-bag-shopping"></i> 書包重量登記
+            </li>
+            <li class="nav-item" onclick="switchView('history-logs')">
+                <i class="fa-solid fa-database"></i> 已存歷史數據
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="dashboard-view" class="view-panel active">
+            <div class="header-title">
+                <h2>🏆 班際比賽即時總積分榜</h2>
+                <div class="date-badge">活動時段：2026年5月11日 - 5月29日</div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-title">目前累計名次榜單 <button class="btn btn-secondary" style="padding: 6px 12px; font-size:13px;" onclick="resetAllData()"><i class="fa-solid fa-trash-can"></i> 重置全盤數據</button></div>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table class="data-table" id="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">名次</th>
+                                    <th>班別</th>
+                                    <th>課室清潔總得分</th>
+                                    <th>書包重量總得分</th>
+                                    <th style="color: var(--primary-light);">累積總得分</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <div class="card-title">💡 計分規則速查</div>
+                        <div style="font-size: 14px; line-height: 1.6; color: var(--text-main);">
+                            <strong style="color:var(--primary-light);">【課室清潔】</strong><br>
+                            • 5個地點保持整潔：每項各獲 <b>1 分</b><br>
+                            • 放學前進行清潔：獲 <b>5 分</b><br>
+                            <br>
+                            <strong style="color:var(--primary-light);">【書包重量】</strong><br>
+                            • 書包不超過全級平均重量即屬達標。<br>
+                            • 全班達標獲 <b>10 分</b>，9成人達標獲 <b>9 分</b>，8成人達標獲 <b>8 分</b>，依此類推。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="clean-form-view" class="view-panel">
+            <div class="header-title">
+                <h2>🧹 課室清潔巡查評分</h2>
+            </div>
+            <div style="max-width: 700px; margin: 0 auto;">
+                <form id="cleanScoreForm" onsubmit="saveCleanScore(event)">
+                    <div class="card">
+                        <div class="card-title">巡查基本資料</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>選擇班別</label>
+                                <select class="form-control" id="clean-class" required>
+                                    <optgroup label="一年級">
+                                        <option value="1A">1A</option><option value="1B">1B</option><option value="1C">1C</option><option value="1D">1D</option><option value="1E">1E</option>
+                                    </optgroup>
+                                    <optgroup label="二年級">
+                                        <option value="2A">2A</option><option value="2B">2B</option><option value="2C">2C</option><option value="2D">2D</option><option value="2E">2E</option>
+                                    </optgroup>
+                                    <optgroup label="三年級">
+                                        <option value="3A">3A</option><option value="3B">3B</option><option value="3C">3C</option><option value="3D">3D</option><option value="3E">3E</option>
+                                    </optgroup>
+                                    <optgroup label="四年級">
+                                        <option value="4A">4A</option><option value="4B">4B</option><option value="4C">4C</option><option value="4D">4D</option><option value="4E">4E</option>
+                                    </optgroup>
+                                    <optgroup label="五年級">
+                                        <option value="5A">5A</option><option value="5B">5B</option><option value="5C">5C</option><option value="5D">5D</option><option value="5E">5E</option>
+                                    </optgroup>
+                                    <optgroup label="六年級">
+                                        <option value="6A">6A</option><option value="6B">6B</option><option value="6C">6C</option><option value="6D">6D</option><option value="6E">6E</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>巡查時段</label>
+                                <select class="form-control" id="clean-session" required onchange="toggleCleanActionVisibility()">
+                                    <option value="小息">小息</option>
+                                    <option value="午休">午休</option>
+                                    <option value="最後一節課堂">最後一節課堂(放學前)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>巡查日期</label>
+                            <input type="date" class="form-control" id="clean-date" required>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">檢查項目狀態 (整潔請開啟)</div>
+                        
+                        <div class="check-item">
+                            <div class="check-item-left">
+                                <span class="badge-score">+1 分</span>
+                                <div>
+                                    <div class="check-item-title">教師桌</div>
+                                    <div class="check-item-desc">桌面整齊、無雜物留空</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-teacher"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="check-item">
+                            <div class="check-item-left">
+                                <span class="badge-score">+1 分</span>
+                                <div>
+                                    <div class="check-item-title">洗手盆</div>
+                                    <div class="check-item-desc">盆內無積水與垃圾渣滓</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-sink"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="check-item">
+                            <div class="check-item-left">
+                                <span class="badge-score">+1 分</span>
+                                <div>
+                                    <div class="check-item-title">地面</div>
+                                    <div class="check-item-desc">地上沒有任何垃圾，各角保持清潔</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-floor"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="check-item">
+                            <div class="check-item-left">
+                                <span class="badge-score">+1 分</span>
+                                <div>
+                                    <div class="check-item-title">桌面</div>
+                                    <div class="check-item-desc">同學已用濕紙巾清潔桌面</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-desk"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="check-item">
+                            <div class="check-item-left">
+                                <span class="badge-score">+1 分</span>
+                                <div>
+                                    <div class="check-item-title">垃圾桶附近位置</div>
+                                    <div class="check-item-desc">桶外周圍乾淨，無掉落雜物</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-bin"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="check-item" id="clean-action-container" style="display: none; border: 1px solid #bbf7d0; background-color: #f0fdf4;">
+                            <div class="check-item-left">
+                                <span class="badge-score" style="background-color:#10b981; color:white;">+5 分</span>
+                                <div>
+                                    <div class="check-item-title" style="color:#166534;">放學前集體清潔</div>
+                                    <div class="check-item-desc" style="color:#166534;">放學前五分鐘全班一同清潔課室</div>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="c-action"><span class="slider"></span></label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="margin-top: 15px;"><i class="fa-solid fa-floppy-disk"></i> 儲存清潔評分數據</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="weight-form-view" class="view-panel">
+            <div class="header-title">
+                <h2>⚖️ 書包重量達標數據登記</h2>
+            </div>
+            <div style="max-width: 700px; margin: 0 auto;">
+                <form id="weightScoreForm" onsubmit="saveWeightScore(event)">
+                    <div class="card">
+                        <div class="card-title">登記基本資料</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>選擇班別</label>
+                                <select class="form-control" id="weight-class" required>
+                                    <optgroup label="一年級">
+                                        <option value="1A">1A</option><option value="1B">1B</option><option value="1C">1C</option><option value="1D">1D</option><option value="1E">1E</option>
+                                    </optgroup>
+                                    <optgroup label="二年級">
+                                        <option value="2A">2A</option><option value="2B">2B</option><option value="2C">2C</option><option value="2D">2D</option><option value="2E">2E</option>
+                                    </optgroup>
+                                    <optgroup label="三年級">
+                                        <option value="3A">3A</option><option value="3B">3B</option><option value="3C">3C</option><option value="3D">3D</option><option value="3E">3E</option>
+                                    </optgroup>
+                                    <optgroup label="四年級">
+                                        <option value="4A">4A</option><option value="4B">4B</option><option value="4C">4C</option><option value="4D">4D</option><option value="4E">4E</option>
+                                    </optgroup>
+                                    <optgroup label="五年級">
+                                        <option value="5A">5A</option><option value="5B">5B</option><option value="5C">5C</option><option value="5D">5D</option><option value="5E">5E</option>
+                                    </optgroup>
+                                    <optgroup label="六年級">
+                                        <option value="6A">6A</option><option value="6B">6B</option><option value="6C">6C</option><option value="6D">6D</option><option value="6E">6E</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>檢查日期</label>
+                                <input type="date" class="form-control" id="weight-date" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">達標比率給分計算法</div>
+                        <div class="info-box">
+                            📌 <b>計分標準：</b><br>
+                            全班達標：獲得10分 | 9成達標：獲得9分 | 8成達標：獲得8分（以此類推）<br>
+                            <span style="color:var(--danger); font-size:12px;">*注意：食物袋及飯袋不計算在書包重量之內。</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>本班學生達標率選擇</label>
+                            <select class="form-control" id="weight-rate" required onchange="calculateWeightScoreDisplay()">
+                                <option value="10">全班達標 (100%) [獲 10 分]</option>
+                                <option value="9">9成位同學達標 (90%) [獲 9 分]</option>
+                                <option value="8">8成位同學達標 (80%) [獲 8 分]</option>
+                                <option value="7">7成位同學達標 (70%) [獲 7 分]</option>
+                                <option value="6">6成位同學達標 (60%) [獲 6 分]</option>
+                                <option value="5">5成位同學達標 (50%) [獲 5 分]</option>
+                                <option value="4">4成位同學達標 (40%) [獲 4 分]</option>
+                                <option value="3">3成位同學達標 (30%) [獲 3 分]</option>
+                                <option value="2">2成位同學達標 (20%) [獲 2 分]</option>
+                                <option value="1">1成位同學達標 (10%) [獲 1 分]</option>
+                                <option value="0">低於1成同學達標 (0%) [獲 0 分]</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 25px;">
+                            <label style="text-align: center; display:block;">本次登記實得得分</label>
+                            <div class="score-display" id="calculated-weight-score">10 分</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="margin-top: 15px;"><i class="fa-solid fa-floppy-disk"></i> 儲存書包重量得分</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="history-logs-view" class="view-panel">
+            <div class="header-title">
+                <h2>📂 已儲存的歷史原始數據</h2>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">課室清潔歷史紀錄</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>班別</th>
+                            <th>時段</th>
+                            <th>細項得分 (師/洗/地/桌/桶)</th>
+                            <th>放學集體清潔</th>
+                            <th>當次總分</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clean-logs-tbody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-title">書包重量歷史紀錄</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>班別</th>
+                            <th>所選達標率</th>
+                            <th>獲取分數</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weight-logs-tbody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast-msg">數據儲存成功！</div>
+
+    <script>
+        // 【核心修改】擴充為全校 1A 至 6E 完整 30 班陣列
+        const classList = [
+            "1A", "1B", "1C", "1D", "1E",
+            "2A", "2B", "2C", "2D", "2E",
+            "3A", "3B", "3C", "3D", "3E",
+            "4A", "4B", "4C", "4D", "4E",
+            "5A", "5B", "5C", "5D", "5E",
+            "6A", "6B", "6C", "6D", "6E"
+        ];
+
+        // 初始化資料存儲結構
+        let db = {
+            cleanLogs: [],
+            weightLogs: []
+        };
+
+        // 頁面加載時讀取本地 LocalStorage
+        window.onload = function() {
+            // 設定今日日期為預設值
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('clean-date').value = today;
+            document.getElementById('weight-date').value = today;
+
+            if(localStorage.getItem('自律比賽DB')) {
+                db = JSON.parse(localStorage.getItem('自律比賽DB'));
+            }
+            
+            renderLeaderboard();
+            renderHistoryLogs();
+            toggleCleanActionVisibility();
+        };
+
+        // 導航切換
+        function switchView(viewName) {
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+            document.getElementById(viewName + '-view').classList.add('active');
+            
+            const event = window.event;
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+
+            if(viewName === 'dashboard') {
+                renderLeaderboard();
+            } else if (viewName === 'history-logs') {
+                renderHistoryLogs();
+            }
+        }
+
+        // 依據時段決定是否顯示「放學前5分鐘一同清潔」
+        function toggleCleanActionVisibility() {
+            const session = document.getElementById('clean-session').value;
+            const container = document.getElementById('clean-action-container');
+            if(session === '最後一節課堂') {
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+                document.getElementById('c-action').checked = false;
+            }
+        }
+
+        // 連動書包分數的大數字顯示
+        function calculateWeightScoreDisplay() {
+            const score = document.getElementById('weight-rate').value;
+            document.getElementById('calculated-weight-score').innerText = score + " 分";
+        }
+
+        // 儲存清潔分數
+        function saveCleanScore(e) {
+            e.preventDefault();
+            
+            const className = document.getElementById('clean-class').value;
+            const session = document.getElementById('clean-session').value;
+            const date = document.getElementById('clean-date').value;
+
+            const itemScore = 
+                (document.getElementById('c-teacher').checked ? 1 : 0) +
+                (document.getElementById('c-sink').checked ? 1 : 0) +
+                (document.getElementById('c-floor').checked ? 1 : 0) +
+                (document.getElementById('c-desk').checked ? 1 : 0) +
+                (document.getElementById('c-bin').checked ? 1 : 0);
+
+            const actionScore = document.getElementById('c-action').checked ? 5 : 0;
+            const total = itemScore + actionScore;
+
+            const logEntry = {
+                date,
+                className,
+                session,
+                details: `${document.getElementById('c-teacher').checked?'✓':'✗'}/${document.getElementById('c-sink').checked?'✓':'✗'}/${document.getElementById('c-floor').checked?'✓':'✗'}/${document.getElementById('c-desk').checked?'✓':'✗'}/${document.getElementById('c-bin').checked?'✓':'✗'}`,
+                actionScore,
+                total
+            };
+
+            db.cleanLogs.push(logEntry);
+            saveToLocalStorage();
+            showToast(`已成功儲存 ${className} 班清潔得分：${total} 分`);
+            
+            document.getElementById('cleanScoreForm').reset();
+            document.getElementById('clean-date').value = date; 
+            toggleCleanActionVisibility();
+        }
+
+        // 儲存書包重量分數
+        function saveWeightScore(e) {
+            e.preventDefault();
+
+            const className = document.getElementById('weight-class').value;
+            const date = document.getElementById('weight-date').value;
+            const rateText = document.getElementById('weight-rate').options[document.getElementById('weight-rate').selectedIndex].text.split('[')[0];
+            const score = parseInt(document.getElementById('weight-rate').value);
+
+            const logEntry = {
+                date,
+                className,
+                rateText,
+                score
+            };
+
+            db.weightLogs.push(logEntry);
+            saveToLocalStorage();
+            showToast(`已成功儲存 ${className} 班書包重量得分：${score} 分`);
+
+            document.getElementById('weightScoreForm').reset();
+            document.getElementById('weight-date').value = date; 
+            calculateWeightScoreDisplay();
+        }
+
+        // 儲存到瀏覽器資料庫
+        function saveToLocalStorage() {
+            localStorage.setItem('自律比賽DB', JSON.stringify(db));
+        }
+
+        // 核心運算：計算排行榜總分並排序
+        function renderLeaderboard() {
+            let scoresSummary = {};
+            classList.forEach(cls => {
+                scoresSummary[cls] = { clean: 0, weight: 0, total: 0 };
+            });
+
+            db.cleanLogs.forEach(log => {
+                if(scoresSummary[log.className]) {
+                    scoresSummary[log.className].clean += log.total;
+                }
+            });
+
+            db.weightLogs.forEach(log => {
+                if(scoresSummary[log.className]) {
+                    scoresSummary[log.className].weight += log.score;
+                }
+            });
+
+            let sortedList = [];
+            classList.forEach(cls => {
+                scoresSummary[cls].total = scoresSummary[cls].clean + scoresSummary[cls].weight;
+                sortedList.push({
+                    className: cls,
+                    clean: scoresSummary[cls].clean,
+                    weight: scoresSummary[cls].weight,
+                    total: scoresSummary[cls].total
+                });
+            });
+
+            sortedList.sort((a, b) => b.total - a.total);
+
+            const tbody = document.querySelector('#leaderboard-table tbody');
+            tbody.innerHTML = "";
+
+            sortedList.forEach((row, index) => {
+                const rank = index + 1;
+                let rankClass = "rank-other";
+                if(rank === 1) rankClass = "rank-1";
+                if(rank === 2) rankClass = "rank-2";
+                if(rank === 3) rankClass = "rank-3";
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+                    <td style="font-weight:600;">${row.className} 班</td>
+                    <td>${row.clean} 分</td>
+                    <td>${row.weight} 分</td>
+                    <td style="font-weight:bold; color:var(--primary-light); font-size:16px;">${row.total} 分</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 渲染歷史日誌查看頁
+        function renderHistoryLogs() {
+            const cleanTbody = document.getElementById('clean-logs-tbody');
+            cleanTbody.innerHTML = db.cleanLogs.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">暫無清潔紀錄</td></tr>' : '';
+            
+            db.cleanLogs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.date}</td>
+                    <td><b>${log.className}</b></td>
+                    <td>${log.session}</td>
+                    <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px;">${log.details}</code></td>
+                    <td>${log.actionScore > 0 ? '有 (+5)' : '無'}</td>
+                    <td><b>${log.total} 分</b></td>
+                `;
+                cleanTbody.appendChild(tr);
+            });
+
+            const weightTbody = document.getElementById('weight-logs-tbody');
+            weightTbody.innerHTML = db.weightLogs.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">暫無書包重量紀錄</td></tr>' : '';
+
+            db.weightLogs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.date}</td>
+                    <td><b>${log.className}</b></td>
+                    <td>${log.rateText}</td>
+                    <td><b>${log.score} 分</b></td>
+                `;
+                weightTbody.appendChild(tr);
+            });
+        }
+
+        // 彈出訊息提示
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // 清空所有數據
+        function resetAllData() {
+            if(confirm('警告：確定要清空系統內所有已儲存的比賽得分和歷史紀錄嗎？此動作無法復原！')) {
+                db = { cleanLogs: [], weightLogs: [] };
+                saveToLocalStorage();
+                renderLeaderboard();
+                renderHistoryLogs();
+                showToast('系統已初始化，所有數據已被清空！');
+            }
+        }
+    </script>
+</body>
+</html>
