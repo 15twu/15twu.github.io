@@ -1,65 +1,9 @@
--- HD Admin Delta - Universal Version (Works in Most Games)
--- Execute in Delta Executor
+-- HD Admin Delta - Minimal Universal Fix (No GUI - Chat Based)
+-- Execute this in Delta Executor first
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HDAdminUniversal"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -170)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.Parent = ScreenGui
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-Title.Text = "HD Admin Universal - All Games"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.TextScaled = true
-Title.Parent = MainFrame
-
-local CmdBar = Instance.new("TextBox")
-CmdBar.Size = UDim2.new(1, -20, 0, 40)
-CmdBar.Position = UDim2.new(0, 10, 0, 50)
-CmdBar.PlaceholderText = "Type command here"
-CmdBar.Text = ""
-CmdBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-CmdBar.TextColor3 = Color3.new(1,1,1)
-CmdBar.Parent = MainFrame
-
-local Output = Instance.new("TextLabel")
-Output.Size = UDim2.new(1, -20, 1, -120)
-Output.Position = UDim2.new(0, 10, 0, 100)
-Output.BackgroundTransparency = 1
-Output.Text = "Universal Mode Active\nCommands work across games"
-Output.TextColor3 = Color3.new(1,1,1)
-Output.TextXAlignment = Enum.TextXAlignment.Left
-Output.TextYAlignment = Enum.TextYAlignment.Top
-Output.TextWrapped = true
-Output.Parent = MainFrame
-
--- Draggable
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local dragStart = input.Position
-        local startPos = MainFrame.Position
-        local conn = RunService.RenderStepped:Connect(function()
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end)
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then conn:Disconnect() end
-        end)
-    end
-end)
+local Prefix = "."
 
 local function getPlayer(name)
     name = name:lower()
@@ -71,210 +15,29 @@ local function getPlayer(name)
     return LocalPlayer
 end
 
-local Commands = {}
+local Commands = {
+    ["kill"] = function(args) local t = getPlayer(args[1] or "me") if t.Character and t.Character:FindFirstChild("Humanoid") then t.Character.Humanoid.Health = 0 end end,
+    ["god"] = function(args) local t = getPlayer(args[1] or "me") if t.Character and t.Character:FindFirstChild("Humanoid") then t.Character.Humanoid.MaxHealth = 9e9 t.Character.Humanoid.Health = 9e9 end end,
+    ["ff"] = function(args) local t = getPlayer(args[1] or "me") if t.Character then Instance.new("ForceField", t.Character) end end,
+    ["unff"] = function(args) local t = getPlayer(args[1] or "me") if t.Character then for _,v in pairs(t.Character:GetChildren()) do if v:IsA("ForceField") then v:Destroy() end end end end,
+    ["tp"] = function(args) local t1 = getPlayer(args[1] or "me") local t2 = getPlayer(args[2] or "me") if t1.Character and t2.Character and t1.Character:FindFirstChild("HumanoidRootPart") then t1.Character.HumanoidRootPart.CFrame = t2.Character.HumanoidRootPart.CFrame + Vector3.new(0,5,0) end end,
+    ["ban"] = function(args) local t = getPlayer(args[1]) if t and t ~= LocalPlayer then if t.Character then t.Character:BreakJoints() end game.Players:Chat("/kick "..t.Name.." Banned") end end,
+    ["speed"] = function(args) local t = getPlayer(args[1] or "me") local s = tonumber(args[2]) or 100 if t.Character and t.Character:FindFirstChild("Humanoid") then t.Character.Humanoid.WalkSpeed = s end end,
+    ["fly"] = function(args) local t = getPlayer(args[1] or "me") if t.Character and t.Character:FindFirstChild("HumanoidRootPart") then local bv = Instance.new("BodyVelocity") bv.MaxForce = Vector3.new(4000,4000,4000) bv.Velocity = t.Character.HumanoidRootPart.CFrame.LookVector * 50 bv.Parent = t.Character.HumanoidRootPart game:GetService("Debris"):AddItem(bv,999) end end,
+    ["noclip"] = function(args) local t = getPlayer(args[1] or "me") if t.Character then for _,p in pairs(t.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end,
+    ["fling"] = function(args) local t = getPlayer(args[1] or "me") if t.Character and t.Character:FindFirstChild("HumanoidRootPart") then t.Character.HumanoidRootPart.Velocity = Vector3.new(0,500,0) end end,
+}
 
-local function register(aliases, func)
-    table.insert(Commands, {Aliases = aliases, Func = func})
-end
-
-register({"kill", "die"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.Health = 0
-    end
-end)
-
-register({"god"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.MaxHealth = math.huge
-        target.Character.Humanoid.Health = math.huge
-    end
-end)
-
-register({"ff", "forcefield"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character then
-        local ff = Instance.new("ForceField")
-        ff.Parent = target.Character
-    end
-end)
-
-register({"unff"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character then
-        for _, v in pairs(target.Character:GetChildren()) do
-            if v:IsA("ForceField") then v:Destroy() end
+LocalPlayer.Chatted:Connect(function(msg)
+    if msg:sub(1,1) == Prefix then
+        local cmdStr = msg:sub(2)
+        local args = cmdStr:split(" ")
+        local cmd = table.remove(args,1):lower()
+        if Commands[cmd] then
+            Commands[cmd](args)
         end
     end
 end)
 
-register({"tp", "teleport", "to"}, function(args)
-    local target1 = getPlayer(args[1] or "me")
-    local target2 = getPlayer(args[2] or "me")
-    if target1.Character and target2.Character and target1.Character:FindFirstChild("HumanoidRootPart") then
-        target1.Character.HumanoidRootPart.CFrame = target2.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
-    end
-end)
-
-register({"bring"}, function(args)
-    local target1 = getPlayer(args[1] or "me")
-    local target2 = getPlayer(args[2] or LocalPlayer.Name)
-    if target1.Character and target2.Character and target1.Character:FindFirstChild("HumanoidRootPart") then
-        target2.Character.HumanoidRootPart.CFrame = target1.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
-    end
-end)
-
-register({"speed"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    local spd = tonumber(args[2]) or 100
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.WalkSpeed = spd
-    end
-end)
-
-register({"jump"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    local jp = tonumber(args[2]) or 100
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.JumpPower = jp
-    end
-end)
-
-register({"sit"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.Sit = true
-    end
-end)
-
-register({"ban"}, function(args)
-    local target = getPlayer(args[1])
-    local reason = table.concat(args, " ", 2) or "Banned"
-    if target and target ~= LocalPlayer then
-        if target.Character then target.Character:BreakJoints() end
-        game.Players:Chat("/kick " .. target.Name .. " " .. reason)
-        Players.PlayerAdded:Connect(function(plr)
-            if plr.Name == target.Name then plr:Kick(reason) end
-        end)
-    end
-end)
-
-register({"fly"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(4000,4000,4000)
-        bv.Velocity = target.Character.HumanoidRootPart.CFrame.LookVector * 50
-        bv.Parent = target.Character.HumanoidRootPart
-        game:GetService("Debris"):AddItem(bv, 999)
-    end
-end)
-
-register({"noclip"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character then
-        for _, part in pairs(target.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
-end)
-
-register({"fling"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        target.Character.HumanoidRootPart.Velocity = Vector3.new(math.random(-100,100), 500, math.random(-100,100))
-    end
-end)
-
-register({"explode"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        local exp = Instance.new("Explosion")
-        exp.Position = target.Character.HumanoidRootPart.Position
-        exp.Parent = Workspace
-    end
-end)
-
-register({"health"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    local hp = tonumber(args[2]) or 100
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.Health = hp
-    end
-end)
-
-register({"heal"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.Health = target.Character.Humanoid.MaxHealth
-    end
-end)
-
-register({"damage"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    local dmg = tonumber(args[2]) or 50
-    if target.Character and target.Character:FindFirstChild("Humanoid") then
-        target.Character.Humanoid.Health = target.Character.Humanoid.Health - dmg
-    end
-end)
-
-register({"respawn", "refresh"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    target:LoadCharacter()
-end)
-
-register({"spin"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    local spd = tonumber(args[2]) or 50
-    if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        local ang = Instance.new("BodyAngularVelocity")
-        ang.AngularVelocity = Vector3.new(0, spd, 0)
-        ang.MaxTorque = Vector3.new(0, math.huge, 0)
-        ang.Parent = target.Character.HumanoidRootPart
-    end
-end)
-
-register({"bigHead"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Head") then
-        target.Character.Head.Mesh.Scale = target.Character.Head.Mesh.Scale * 2
-    end
-end)
-
-register({"smallHead"}, function(args)
-    local target = getPlayer(args[1] or "me")
-    if target.Character and target.Character:FindFirstChild("Head") then
-        target.Character.Head.Mesh.Scale = target.Character.Head.Mesh.Scale / 2
-    end
-end)
-
-CmdBar.FocusLost:Connect(function(enter)
-    if enter then
-        local input = CmdBar.Text
-        CmdBar.Text = ""
-        local split = input:split(" ")
-        local cmdName = table.remove(split, 1):lower()
-        
-        for _, cmd in pairs(Commands) do
-            for _, alias in pairs(cmd.Aliases) do
-                if alias:lower() == cmdName then
-                    cmd.Func(split)
-                    Output.Text = Output.Text .. "\n> " .. input
-                    return
-                end
-            end
-        end
-    end
-end)
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.Text = "X"
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.TextColor3 = Color3.new(1,1,1)
-CloseBtn.Parent = MainFrame
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-print("HD Admin Universal Loaded")
+print("HD Admin Minimal Universal Loaded - Prefix: .")
+print("Use in chat: .kill me | .ban player | .god all | .speed 500 | .fly")
