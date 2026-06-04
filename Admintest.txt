@@ -1,231 +1,171 @@
--- Nyx Delta Executor Script - Bots with Names + Full Admin Panel
--- Paste directly into Delta Roblox Executor
+-- Nyx Delta Script for Pls Donate - Immortal Noob Bacon Chatting Bots
+-- Paste directly into Delta Roblox Executor while in Pls Donate
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ChatService = game:GetService("Chat")
 
-local BOT_COUNT = 20
-local BOT_SPEED = 25
-local BOT_DAMAGE = 30
-local BOT_HEALTH = 200
+local BOT_COUNT = 25
+local BOT_SPEED = 28
+local BOT_HEALTH = 999999999
 
 local botNames = {
-    "NyxVoid", "ShadowReaper", "DeltaSlayer", "KillerByte", "EclipseHunter",
-    "VoidWalker", "NeoDestroyer", "PhantomX", "RageBot", "ApexPredator",
-    "NightStalker", "ChaosEngine", "FrostReaver", "ThunderKill", "BloodRaven"
+    "NyxNoob", "BaconNoob", "PlsDonateNoob", "ShadowBacon", "VoidNoob",
+    "NeoBacon", "PhantomNoob", "RageBacon", "ApexNoob", "NightBacon",
+    "ChaosNoob", "FrostBacon", "ThunderNoob", "BloodBacon", "NyxBacon"
 }
 
-local function CreateNamedAdminBot()
+local chatLines = {
+    "pls give me Robux, I am Noob",
+    "Pls donate Robux I am Noob :(",
+    "I am Noob pls give me Robux",
+    "Noob here, anyone give Robux pls",
+    "Pls give me Robux I am Noob",
+    "Help a Noob with Robux donate",
+    "I am Noob pls Robux",
+    "Donate Robux to Noob me",
+    "Noob begging for Robux pls",
+    "Give Robux I am Noob",
+    "Pls Robux for Noob",
+    "I am Noob need Robux donate",
+    "Bacon Noob wants Robux pls",
+    "Noob Bacon here donate"
+}
+
+local function CreateImmortalNoobBaconBot()
     local botModel = Instance.new("Model")
     local randomName = botNames[math.random(1, #botNames)] .. "_" .. math.random(100,999)
     botModel.Name = randomName
     
     local humanoid = Instance.new("Humanoid")
-    humanoid.Name = "Humanoid"
     humanoid.Health = BOT_HEALTH
     humanoid.MaxHealth = BOT_HEALTH
     humanoid.WalkSpeed = BOT_SPEED
-    humanoid.JumpPower = 70
+    humanoid.JumpPower = 80
     humanoid.Parent = botModel
     
+    -- Noob Bacon Body Parts
     local root = Instance.new("Part")
     root.Name = "HumanoidRootPart"
     root.Size = Vector3.new(2, 2, 1)
-    root.Transparency = 0.2
-    root.Color = Color3.fromRGB(80, 0, 255)
-    root.Material = Enum.Material.ForceField
+    root.Transparency = 0
+    root.Color = Color3.fromRGB(0, 0, 0)
+    root.Material = Enum.Material.Plastic
     root.CanCollide = false
     root.Parent = botModel
     
+    local torso = Instance.new("Part")
+    torso.Name = "Torso"
+    torso.Size = Vector3.new(2, 2, 1)
+    torso.Color = Color3.fromRGB(0, 0, 255)  -- Classic blue
+    torso.Material = Enum.Material.Plastic
+    torso.Parent = botModel
+    
     local head = Instance.new("Part")
     head.Name = "Head"
-    head.Size = Vector3.new(1.3, 1.3, 1.3)
-    head.Shape = Enum.PartType.Ball
-    head.Color = Color3.fromRGB(255, 20, 20)
-    head.Material = Enum.Material.Neon
+    head.Size = Vector3.new(1.25, 1.25, 1.25)
+    head.Color = Color3.fromRGB(255, 204, 153)  -- Noob skin
+    head.Material = Enum.Material.SmoothPlastic
     head.Parent = botModel
     
-    local headMesh = Instance.new("SpecialMesh")
-    headMesh.MeshType = Enum.MeshType.FileMesh
-    headMesh.MeshId = "rbxassetid://541067719"
-    headMesh.Scale = Vector3.new(1.2, 1.2, 1.2)
-    headMesh.Parent = head
+    -- Bacon Hair
+    local hair = Instance.new("Part")
+    hair.Name = "Hair"
+    hair.Size = Vector3.new(1.2, 1.2, 1.2)
+    hair.Color = Color3.fromRGB(255, 102, 0)  -- Bacon color
+    hair.Material = Enum.Material.Plastic
+    hair.Parent = botModel
     
-    local motor = Instance.new("Motor6D")
-    motor.Name = "Neck"
-    motor.Part0 = root
-    motor.Part1 = head
-    motor.C0 = CFrame.new(0, 1.6, 0)
-    motor.Parent = root
+    local hairMesh = Instance.new("SpecialMesh")
+    hairMesh.MeshType = Enum.MeshType.FileMesh
+    hairMesh.MeshId = "rbxassetid://19358630"  -- Classic Bacon Hair
+    hairMesh.Scale = Vector3.new(1.1, 1.1, 1.1)
+    hairMesh.Parent = hair
+    
+    local leftArm = Instance.new("Part")
+    leftArm.Name = "Left Arm"
+    leftArm.Size = Vector3.new(1, 2, 1)
+    leftArm.Color = Color3.fromRGB(255, 204, 153)
+    leftArm.Parent = botModel
+    
+    local rightArm = Instance.new("Part")
+    rightArm.Name = "Right Arm"
+    rightArm.Size = Vector3.new(1, 2, 1)
+    rightArm.Color = Color3.fromRGB(255, 204, 153)
+    rightArm.Parent = botModel
+    
+    local leftLeg = Instance.new("Part")
+    leftLeg.Name = "Left Leg"
+    leftLeg.Size = Vector3.new(1, 2, 1)
+    leftLeg.Color = Color3.fromRGB(0, 0, 255)
+    leftLeg.Parent = botModel
+    
+    local rightLeg = Instance.new("Part")
+    rightLeg.Name = "Right Leg"
+    rightLeg.Size = Vector3.new(1, 2, 1)
+    rightLeg.Color = Color3.fromRGB(0, 0, 255)
+    rightLeg.Parent = botModel
+    
+    -- Welds for classic R6 Noob look
+    local function weld(part0, part1, c0)
+        local w = Instance.new("Motor6D")
+        w.Part0 = part0
+        w.Part1 = part1
+        w.C0 = c0
+        w.Parent = part0
+    end
+    
+    weld(torso, head, CFrame.new(0, 1.5, 0))
+    weld(torso, leftArm, CFrame.new(-1.5, 0.5, 0))
+    weld(torso, rightArm, CFrame.new(1.5, 0.5, 0))
+    weld(torso, leftLeg, CFrame.new(-0.5, -1.5, 0))
+    weld(torso, rightLeg, CFrame.new(0.5, -1.5, 0))
+    weld(head, hair, CFrame.new(0, 0.6, 0))
+    weld(root, torso, CFrame.new(0, 0, 0))
     
     botModel.PrimaryPart = root
     botModel.Parent = Workspace
     
-    -- Display name above bot
     local billboard = Instance.new("BillboardGui")
     billboard.Adornee = head
-    billboard.Size = UDim2.new(4, 0, 1, 0)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Size = UDim2.new(5, 0, 1.2, 0)
+    billboard.StudsOffset = Vector3.new(0, 3.5, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = head
     
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1, 0, 1, 0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = randomName
-    nameLabel.TextColor3 = Color3.fromRGB(255, 100, 255)
+    nameLabel.Text = randomName .. " [NOOB BACON]"
+    nameLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
     nameLabel.TextScaled = true
     nameLabel.Font = Enum.Font.Arcade
     nameLabel.Parent = billboard
     
-    -- AI Loop
     spawn(function()
-        local target = nil
-        while humanoid.Health > 0 and botModel.Parent do
-            wait(0.25)
-            
+        while botModel.Parent do
+            wait(0.2)
             local closest = nil
             local minDist = math.huge
-            
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local dist = (plr.Character.HumanoidRootPart.Position - root.Position).Magnitude
-                    if dist < minDist and dist < 350 then
+                    if dist < minDist and dist < 500 then
                         minDist = dist
                         closest = plr.Character.HumanoidRootPart
                     end
                 end
             end
-            
-            target = closest
-            
-            if target then
-                humanoid:MoveTo(target.Position)
-                
-                if minDist < 9 then
-                    local hitPart = Instance.new("Part")
-                    hitPart.Size = Vector3.new(6, 6, 6)
-                    hitPart.Transparency = 1
-                    hitPart.CanCollide = false
-                    hitPart.Anchored = true
-                    hitPart.Position = root.Position + (target.Position - root.Position).Unit * 7
-                    hitPart.Parent = Workspace
-                    
-                    for _, part in pairs(Workspace:GetPartsInPart(hitPart)) do
-                        local hum = part.Parent:FindFirstChild("Humanoid")
-                        if hum and part.Parent ~= botModel then
-                            hum:TakeDamage(BOT_DAMAGE)
-                        end
-                    end
-                    
-                    hitPart:Destroy()
-                    wait(0.6)
-                end
+            if closest then
+                humanoid:MoveTo(closest.Position)
             end
         end
     end)
     
-    humanoid.Died:Connect(function()
-        wait(2)
-        if botModel then botModel:Destroy() end
-        wait(0.4)
-        CreateNamedAdminBot()
+    spawn(function()
+        while botModel.Parent do
+            wait(math.random(6, 14))
+            local msg = chatLines[math.random(1, #chatLines)]
+            ChatService:Chat(head, msg, Enum.ChatColor.Green)
+        end
     end)
-    
-    local spawnPos = Vector3.new(math.random(-100,100), 50, math.random(-100,100))
-    if Workspace:FindFirstChild("SpawnLocation") then
-        local sp = Workspace.SpawnLocation
-        spawnPos = sp.Position + Vector3.new(math.random(-40,40), 15, math.random(-40,40))
-    end
-    botModel:SetPrimaryPartCFrame(CFrame.new(spawnPos))
-end
-
--- Spawn bots
-for i = 1, BOT_COUNT do
-    CreateNamedAdminBot()
-    wait(0.15)
-end
-
--- Admin Commands
-local adminCommands = Instance.new("ScreenGui")
-adminCommands.Name = "NyxAdminPanel"
-adminCommands.ResetOnSpawn = false
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 420)
-frame.Position = UDim2.new(0, 10, 0.5, -210)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
-frame.BorderSizePixel = 0
-frame.Parent = adminCommands
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "NYX BOT ADMIN"
-title.TextColor3 = Color3.fromRGB(255, 0, 255)
-title.BackgroundTransparency = 1
-title.TextScaled = true
-title.Font = Enum.Font.Arcade
-title.Parent = frame
-
-local function createButton(text, yOffset, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 45)
-    btn.Position = UDim2.new(0.05, 0, 0, yOffset)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(60, 0, 120)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.SourceSansBold
-    btn.Parent = frame
-    btn.MouseButton1Click:Connect(callback)
-end
-
-createButton("Kill All Bots", 50, function()
-    for _, obj in pairs(Workspace:GetChildren()) do
-        if obj.Name:find("NyxVoid") or obj.Name:find("DeltaSlayer") or string.find(obj.Name, "_") then
-            local hum = obj:FindFirstChild("Humanoid")
-            if hum then hum.Health = 0 end
-        end
-    end
-end)
-
-createButton("Spawn 10 More Bots", 105, function()
-    for i = 1, 10 do
-        CreateNamedAdminBot()
-        wait(0.1)
-    end
-end)
-
-createButton("Teleport Bots to Me", 160, function()
-    local localPlayer = Players.LocalPlayer
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local myPos = localPlayer.Character.HumanoidRootPart.Position
-        for _, obj in pairs(Workspace:GetChildren()) do
-            if obj:FindFirstChild("HumanoidRootPart") and (obj.Name:find("Nyx") or obj.Name:find("Delta") or string.find(obj.Name, "_")) then
-                obj.HumanoidRootPart.CFrame = CFrame.new(myPos + Vector3.new(math.random(-15,15), 5, math.random(-15,15)))
-            end
-        end
-    end
-end)
-
-createButton("Make Bots Stronger", 215, function()
-    BOT_DAMAGE = BOT_DAMAGE + 15
-    BOT_SPEED = BOT_SPEED + 3
-    for _, obj in pairs(Workspace:GetChildren()) do
-        if obj:FindFirstChild("Humanoid") and (obj.Name:find("Nyx") or obj.Name:find("Delta") or string.find(obj.Name, "_")) then
-            obj.Humanoid.WalkSpeed = BOT_SPEED
-        end
-    end
-end)
-
-createButton("Destroy All Bots", 270, function()
-    for _, obj in pairs(Workspace:GetChildren()) do
-        if obj.Name:find("NyxVoid") or obj.Name:find("DeltaSlayer") or string.find(obj.Name, "_") then
-            obj:Destroy()
-        end
-    end
-end)
-
-adminCommands.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-
-print("✅ Nyx Named Bots + Admin Panel Loaded - " .. BOT_COUNT .. " bots with names active")
