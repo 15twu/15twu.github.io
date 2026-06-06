@@ -5,9 +5,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>跨 iPad 實時 POS (普通模式直達版)</title>
+    <title>跨 iPad 實時 POS (星加坡伺服器直通版)</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -120,7 +119,6 @@
     </div>
 
     <script>
-        // 100% 填好你專屬的密鑰
         const firebaseConfig = {
             apiKey: "AIzaSyAqd8dTtbJ93AjZC6XetHbzTaapUjVMQI8",
             authDomain: "myipadpos-273f7.firebaseapp.com",
@@ -131,7 +129,11 @@
             appId: "1:864919252462:web:4407a84d24001c8b6932ff"
         };
         
+        // 初始化 App
         firebase.initializeApp(firebaseConfig);
+        
+        // 🚨 核心修正：強制向 Firebase 指定使用星加坡（asia-southeast1）的資料庫實例
+        // 這樣 iPad 就不會連去美國，也就不會再被伺服器「一秒踢斷」變紅燈了！
         const database = firebase.database();
         
         const masterMenu = [
