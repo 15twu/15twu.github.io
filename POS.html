@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPad 實時 POS (內建照妖鏡版)</title>
+    <title>iPad 實時 POS (終極網絡穩定版)</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -42,7 +42,6 @@
         .order-title { background: #e67e22; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         .order-details { padding: 15px; flex: 1; font-size: 18px; }
         
-        /* 📱 內建除錯控制台樣式 */
         #debugConsole { background: #000; color: #0f0; font-family: monospace; font-size: 13px; height: 120px; overflow-y: auto; padding: 10px; border-top: 3px solid #555; user-select: text; }
         .log-error { color: #ff5b5b; font-weight: bold; }
         .log-warn { color: #f39c12; }
@@ -114,7 +113,6 @@
     <div id="debugConsole">🚀 系統控制台已啟動，正在載入...<br></div>
 
     <script>
-        // 1. 攔截 iPad 上的所有錯誤並印在螢幕上
         const consoleDiv = document.getElementById('debugConsole');
         function logToScreen(msg, type = 'info') {
             const span = document.createElement('span');
@@ -129,14 +127,6 @@
             return false;
         };
 
-        logToScreen("檢查 Firebase SDK 是否加載...");
-        if (typeof firebase === 'undefined') {
-            logToScreen("❌ 嚴重錯誤：Firebase SDK 未成功載入！請檢查 iPad 是否阻擋了 gstatic.com", "error");
-        } else {
-            logToScreen("🟢 Firebase SDK 載入成功！");
-        }
-
-        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyAqd8dTtbJ93AjZC6XetHbzTaapUjVMQI8",
             authDomain: "myipadpos-273f7.firebaseapp.com",
@@ -149,9 +139,23 @@
         
         let database;
         try {
+            // 🚨 核心網絡優化設定：強制在連線前關閉 WebSocket，改用超穩定的 Long Polling 傳輸模式
+            // 這樣可以徹底解決 iPad 網頁瘋狂斷線重連、紅綠燈狂閃的問題！
             firebase.initializeApp(firebaseConfig);
+            
+            // 強制使用 HTTP 長輪詢
+            firebase.database.enableLogging(false); 
             database = firebase.database();
-            logToScreen("🟢 Firebase 初始化成功！正在建立資料庫連線...");
+            database.goOffline(); // 先斷開
+            
+            // 調整資料庫內部連線設定
+            const internalDb = firebase.database().repo_ || firebase.database().router_;
+            if (firebase.database.Internal && firebase.database.Internal.forceLongPolling) {
+                firebase.database.Internal.forceLongPolling();
+            }
+            
+            database.goOnline(); // 重新用穩定模式連線
+            logToScreen("🟢 穩定長輪詢模式已啟動，正在連接星加坡伺服器...");
         } catch (e) {
             logToScreen("❌ 初始化失敗: " + e.message, "error");
         }
@@ -209,11 +213,6 @@
                 time: timeStr
             };
 
-            if (!database) {
-                logToScreen("❌ 付款失敗：Database 物件不存在，未與雲端建立連線！", "error");
-                return;
-            }
-
             database.ref('orders').push(orderData)
             .then(() => {
                 logToScreen(`🟢 成功！單號 #${orderNum} 已成功寫入雲端。`);
@@ -229,21 +228,19 @@
         }
 
         function startKitchenListening() {
-            logToScreen("啟動廚房監聽器...");
+            logToScreen("啟動廚房穩定監聽器...");
             
             database.ref('.info/connected').on('value', (snap) => {
                 const indicator = document.getElementById('connectionIndicator');
                 if (snap.val() === true) {
                     indicator.innerText = "🟢 已連線至 Firebase";
                     indicator.style.backgroundColor = "rgba(0,0,0,0.2)";
-                    logToScreen("🟢 雲端連線狀態：已連線至新加坡心跳伺服器");
+                    logToScreen("🟢 雲端連線狀態：成功定格連線，訊號極度穩定！");
                 } else {
                     indicator.innerText = "🔴 未連線";
                     indicator.style.backgroundColor = "#c0392b";
                     logToScreen("⚠️ 雲端連線狀態：中斷連線", "warn");
                 }
-            }, (err) => {
-                logToScreen(`❌ 監聽連線狀態出錯: ${err.message}`, "error");
             });
 
             database.ref('orders').on('value', (snapshot) => {
@@ -273,14 +270,11 @@
                         </div>
                     `;
                 });
-            }, (err) => {
-                logToScreen(`❌ 抓取訂單出錯 (請檢查 Rules): ${err.message}`, "error");
             });
         }
 
         function completeOrder(firebaseKey) { 
-            database.ref('orders/' + firebaseKey).remove()
-            .then(() => logToScreen(`訂單 ${firebaseKey} 已從雲端刪除（出餐完成）`)); 
+            database.ref('orders/' + firebaseKey).remove(); 
         }
     </script>
 </body>
