@@ -2,8 +2,13 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPad 實時 POS (終極修復版)</title>
+    <title>跨 iPad 實時 POS (普通模式直達版)</title>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
@@ -115,7 +120,7 @@
     </div>
 
     <script>
-        // 使用你專屬的 100% 正確配置
+        // 100% 填好你專屬的密鑰
         const firebaseConfig = {
             apiKey: "AIzaSyAqd8dTtbJ93AjZC6XetHbzTaapUjVMQI8",
             authDomain: "myipadpos-273f7.firebaseapp.com",
@@ -182,7 +187,6 @@
             const orderNum = Math.floor(100 + Math.random() * 900);
             const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
-            // 修正：確保乾淨的數據結構上傳
             const cleanedItems = tray.map(item => ({
                 name: String(item.name),
                 price: Number(item.price),
@@ -195,7 +199,6 @@
                 time: timeStr
             };
 
-            // 執行推送，並加入錯誤攔截
             database.ref('orders').push(orderData)
             .then(() => {
                 alert(`【${method}】付款成功！\n您的號碼牌是：#${orderNum}\n\n廚房已同步收到訂單！🍟`);
@@ -204,7 +207,7 @@
                 document.getElementById('paymentModal').style.display = 'none';
             })
             .catch(err => {
-                alert("傳送失敗！請檢查網絡或 Firebase 設定，錯誤訊息：" + err.message);
+                alert("傳送失敗： " + err.message);
             });
         }
 
@@ -278,7 +281,6 @@
             document.getElementById('kitchenAddFoodModal').style.display = 'flex';
         }
 
-        // 動態生成選單
         function buildKitchenMenu() {
             const container = document.getElementById('kitchenFoodMenuOptions');
             container.innerHTML = '';
