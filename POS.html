@@ -3,28 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>跨 iPad 實時同步 POS 系統 (最終修正版)</title>
+    <title>iPad 實時 POS (終極修復版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; }
         body { background-color: #f8f9fa; height: 100vh; overflow: hidden; }
-        
         .view { display: none; height: 100vh; flex-direction: column; }
         .active-view { display: flex; }
-
-        /* 設定畫面 */
         .setup-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #34495e; color: white; }
         .btn-mode { padding: 25px 50px; font-size: 24px; font-weight: bold; margin: 20px; border: none; border-radius: 15px; cursor: pointer; color: white; width: 300px; }
-
-        /* 客人點餐機 */
         header { background: #e74c3c; color: white; text-align: center; padding: 20px; font-size: 26px; font-weight: bold; }
         .kiosk-body { display: grid; grid-template-columns: 1fr 360px; flex: 1; overflow: hidden; }
         .menu-container { padding: 25px; overflow-y: auto; }
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
         .food-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; }
-        .food-card:active { background-color: #fff5f5; }
         .food-emoji { font-size: 45px; }
         .food-name { font-size: 18px; font-weight: bold; margin-top: 5px; }
         .food-price { color: #e74c3c; font-weight: bold; }
@@ -34,21 +28,15 @@
         .tray-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
         .checkout-footer { padding: 20px; border-top: 2px solid #eee; }
         .btn-checkout { width: 100%; background: #2ecc71; color: white; border: none; padding: 18px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; }
-        
-        /* 付款彈窗 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 85%; max-width: 380px; }
         .btn-pay { width: 100%; padding: 15px; margin: 8px 0; border: none; border-radius: 8px; font-size: 18px; color: white; font-weight: bold; cursor: pointer; }
-
-        /* 廚房大螢幕 */
         .kitchen-header { background: #27ae60; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .kitchen-body { flex: 1; padding: 20px; background: #111; overflow-y: auto; }
         .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .order-card { background: #222; border: 1px solid #333; border-radius: 8px; color: white; display: flex; flex-direction: column; overflow: hidden; }
         .order-title { background: #e67e22; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         .order-details { padding: 15px; flex: 1; font-size: 18px; }
-        
-        /* 廚房控制項 */
         .kitchen-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed #333; padding-bottom: 8px; }
         .kitchen-qty-controls { display: flex; align-items: center; gap: 8px; }
         .btn-kitchen-qty { width: 28px; height: 28px; border-radius: 50%; border: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
@@ -62,7 +50,6 @@
     <div id="setupView" class="view active-view">
         <div class="setup-screen">
             <h1 style="margin-bottom: 10px;">請設定此部 iPad 的用途</h1>
-            <p style="color: #ccc; margin-bottom: 30px;">（不同 iPad 選擇不同模式進行實時同步）</p>
             <button class="btn-mode" style="background: #e74c3c;" onclick="initRole('kiosk')">🛒 門口客人點餐機</button>
             <button class="btn-mode" style="background: #27ae60;" onclick="initRole('kitchen')">👨‍🍳 廚房出餐大螢幕</button>
         </div>
@@ -128,18 +115,17 @@
     </div>
 
     <script>
-        // 🌟 這裡已完美換上你照片中 100% 正確的真實金鑰！
+        // 使用你專屬的 100% 正確配置
         const firebaseConfig = {
             apiKey: "AIzaSyAqd8dTtbJ93AjZC6XetHbzTaapUjVMQI8",
             authDomain: "myipadpos-273f7.firebaseapp.com",
             databaseURL: "https://myipadpos-273f7-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "myipadpos-273f7",
-            storageBucket: "myipadpos-273f7.appspot.com",
+            storageBucket: "myipadpos-273f7.firebasestorage.app",
             messagingSenderId: "864919252462",
             appId: "1:864919252462:web:4407a84d24001c8b6932ff"
         };
         
-        // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
@@ -166,7 +152,7 @@
 
         function addToTray(name, price) {
             const exist = tray.find(i => i.name === name);
-            if (exist) { exist.qty++; } else { tray.push({ name, price, qty: 1 }); }
+            if (exist) { exist.qty++; } else { tray.push({ name: name, price: Number(price), qty: 1 }); }
             renderTray();
         }
 
@@ -196,12 +182,20 @@
             const orderNum = Math.floor(100 + Math.random() * 900);
             const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
+            // 修正：確保乾淨的數據結構上傳
+            const cleanedItems = tray.map(item => ({
+                name: String(item.name),
+                price: Number(item.price),
+                qty: Number(item.qty)
+            }));
+
             const orderData = {
                 orderNum: orderNum,
-                items: tray,
+                items: cleanedItems,
                 time: timeStr
             };
 
+            // 執行推送，並加入錯誤攔截
             database.ref('orders').push(orderData)
             .then(() => {
                 alert(`【${method}】付款成功！\n您的號碼牌是：#${orderNum}\n\n廚房已同步收到訂單！🍟`);
@@ -210,12 +204,11 @@
                 document.getElementById('paymentModal').style.display = 'none';
             })
             .catch(err => {
-                alert("雲端連線失敗，請確認 Firebase Rules 狀態：" + err.message);
+                alert("傳送失敗！請檢查網絡或 Firebase 設定，錯誤訊息：" + err.message);
             });
         }
 
         function startKitchenListening() {
-            // 監聽連線狀態
             database.ref('.info/connected').on('value', (snap) => {
                 const indicator = document.getElementById('connectionIndicator');
                 if (snap.val() === true) {
@@ -285,6 +278,7 @@
             document.getElementById('kitchenAddFoodModal').style.display = 'flex';
         }
 
+        // 動態生成選單
         function buildKitchenMenu() {
             const container = document.getElementById('kitchenFoodMenuOptions');
             container.innerHTML = '';
@@ -299,7 +293,7 @@
             if (!currentOrder.items) currentOrder.items = [];
             const existingItem = currentOrder.items.find(i => i.name === foodName);
             if (existingItem) { existingItem.qty++; } 
-            else { currentOrder.items.push({ name: foodName, price: foodPrice, qty: 1 }); }
+            else { currentOrder.items.push({ name: foodName, price: Number(foodPrice), qty: 1 }); }
             database.ref('orders/' + currentEditingFirebaseKey).set(currentOrder).then(() => {
                 document.getElementById('kitchenAddFoodModal').style.display = 'none';
             });
