@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>跨 iPad 實時同步 POS 系統 (櫃檯自由加減菜單版)</title>
+    <title>跨 iPad 實時同步 POS 系統 (最終修正版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
@@ -35,7 +35,7 @@
         .checkout-footer { padding: 20px; border-top: 2px solid #eee; }
         .btn-checkout { width: 100%; background: #2ecc71; color: white; border: none; padding: 18px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; }
         
-        /* 付款與加單通用彈窗 */
+        /* 付款彈窗 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 85%; max-width: 380px; }
         .btn-pay { width: 100%; padding: 15px; margin: 8px 0; border: none; border-radius: 8px; font-size: 18px; color: white; font-weight: bold; cursor: pointer; }
@@ -48,16 +48,13 @@
         .order-title { background: #e67e22; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         .order-details { padding: 15px; flex: 1; font-size: 18px; }
         
-        /* 廚房端加減食物按鈕 */
+        /* 廚房控制項 */
         .kitchen-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed #333; padding-bottom: 8px; }
         .kitchen-qty-controls { display: flex; align-items: center; gap: 8px; }
         .btn-kitchen-qty { width: 28px; height: 28px; border-radius: 50%; border: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .btn-kitchen-minus { background: #e74c3c; color: white; }
         .btn-kitchen-plus { background: #2ecc71; color: white; }
-        
-        /* 廚房卡片內新增食物按鈕 */
         .btn-kitchen-add-food { width: 90%; margin: 5px auto 15px auto; background: #34495e; color: #ecf0f1; border: 1px dashed #555; padding: 8px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-kitchen-add-food:active { background: #2c3e50; }
     </style>
 </head>
 <body>
@@ -113,7 +110,7 @@
     <div id="kitchenView" class="view">
         <div class="kitchen-header">
             <h2>👨‍🍳 櫃檯/廚房出餐管理 (實時雲端訂單)</h2>
-            <div style="font-size: 14px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 20px;">🟢 已連線至 Firebase</div>
+            <div id="connectionIndicator" style="font-size: 14px; background: #c0392b; padding: 5px 10px; border-radius: 20px;">🔴 未連線</div>
         </div>
         <div class="kitchen-body">
             <div class="orders-grid" id="kitchenOrdersGrid">
@@ -124,23 +121,28 @@
 
     <div class="modal" id="kitchenAddFoodModal">
         <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">櫃檯補加食物</h3>
-            <div id="kitchenFoodMenuOptions">
-                </div>
+            <h3 style="margin-bottom: 15px; color:#333;">櫃檯補加食物</h3>
+            <div id="kitchenFoodMenuOptions"></div>
             <button style="background:none; border:none; margin-top:15px; color:#999; text-decoration:underline;" onclick="document.getElementById('kitchenAddFoodModal').style.display='none'">取消</button>
         </div>
     </div>
 
     <script>
-        // 使用你的 Firebase 網址
+        // 🌟 這裡已完美換上你照片中 100% 正確的真實金鑰！
         const firebaseConfig = {
-            databaseURL: "https://myipadpos-273f7-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+            apiKey: "AIzaSyAqd8dTtbJ93AjZC6XetHbzTaapUjVMQI8",
+            authDomain: "myipadpos-273f7.firebaseapp.com",
+            databaseURL: "https://myipadpos-273f7-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "myipadpos-273f7",
+            storageBucket: "myipadpos-273f7.appspot.com",
+            messagingSenderId: "864919252462",
+            appId: "1:864919252462:web:4407a84d24001c8b6932ff"
         };
         
+        // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        // 統一定義基礎菜單（Kiosk 同 櫃檯廚房共用呢個數據清單）
         const masterMenu = [
             { name: "🍔 巨無霸漢堡", price: 45 },
             { name: "🍟 大薯條", price: 22 },
@@ -149,7 +151,7 @@
 
         let tray = [];
         let rawOrdersData = {};
-        let currentEditingFirebaseKey = ''; // 紀錄依家正係幫邊張單補加嘢食
+        let currentEditingFirebaseKey = '';
 
         function initRole(role) {
             document.getElementById('setupView').style.display = 'none';
@@ -158,7 +160,7 @@
             } else if (role === 'kitchen') {
                 document.getElementById('kitchenView').classList.add('active-view');
                 startKitchenListening();
-                buildKitchenMenu(); // 生成廚房加單彈窗內容
+                buildKitchenMenu();
             }
         }
 
@@ -208,12 +210,23 @@
                 document.getElementById('paymentModal').style.display = 'none';
             })
             .catch(err => {
-                alert("雲端連線失敗：" + err.message);
+                alert("雲端連線失敗，請確認 Firebase Rules 狀態：" + err.message);
             });
         }
 
-        // ================= 廚房端實時監聽與控制 =================
         function startKitchenListening() {
+            // 監聽連線狀態
+            database.ref('.info/connected').on('value', (snap) => {
+                const indicator = document.getElementById('connectionIndicator');
+                if (snap.val() === true) {
+                    indicator.innerText = "🟢 已連線至 Firebase";
+                    indicator.style.backgroundColor = "rgba(0,0,0,0.2)";
+                } else {
+                    indicator.innerText = "🔴 未連線";
+                    indicator.style.backgroundColor = "#c0392b";
+                }
+            });
+
             database.ref('orders').on('value', (snapshot) => {
                 const grid = document.getElementById('kitchenOrdersGrid');
                 rawOrdersData = snapshot.val();
@@ -249,9 +262,7 @@
                                 <span>單號 #${order.orderNum}</span>
                                 <span style="font-size:12px; opacity:0.8;">${order.time}</span>
                             </div>
-                            <div class="order-details">
-                                ${itemsHtml}
-                            </div>
+                            <div class="order-details">${itemsHtml}</div>
                             <button class="btn-kitchen-add-food" onclick="openKitchenAddFoodModal('${firebaseKey}')">➕ 幫客人加點其他食物</button>
                             <button style="width:100%; background:#2ecc71; color:white; border:none; padding:12px; font-weight:bold; cursor:pointer;" onclick="completeOrder('${firebaseKey}')">出餐完成</button>
                         </div>
@@ -260,69 +271,41 @@
             });
         }
 
-        // 修改現有食物數量
         function changeKitchenQty(firebaseKey, itemIndex, amount) {
             let currentOrder = rawOrdersData[firebaseKey];
             if (!currentOrder || !currentOrder.items) return;
-
             currentOrder.items[itemIndex].qty += amount;
-
-            if (currentOrder.items[itemIndex].qty <= 0) {
-                currentOrder.items.splice(itemIndex, 1);
-            }
-
-            if (currentOrder.items.length === 0) {
-                database.ref('orders/' + firebaseKey).remove();
-            } else {
-                database.ref('orders/' + firebaseKey).set(currentOrder);
-            }
+            if (currentOrder.items[itemIndex].qty <= 0) { currentOrder.items.splice(itemIndex, 1); }
+            if (currentOrder.items.length === 0) { database.ref('orders/' + firebaseKey).remove(); } 
+            else { database.ref('orders/' + firebaseKey).set(currentOrder); }
         }
 
-        // 開啟廚房加新食物嘅彈窗
         function openKitchenAddFoodModal(firebaseKey) {
             currentEditingFirebaseKey = firebaseKey;
             document.getElementById('kitchenAddFoodModal').style.display = 'flex';
         }
 
-        // 根據主菜單動態生成廚房加單按鈕
         function buildKitchenMenu() {
             const container = document.getElementById('kitchenFoodMenuOptions');
             container.innerHTML = '';
             masterMenu.forEach(prod => {
-                container.innerHTML += `
-                    <button class="btn-pay" style="background:#34495e; color:white; font-size:16px;" 
-                        onclick="addBrandNewFoodToOrder('${prod.name}', ${prod.price})">
-                        加點 ${prod.name} (+$${prod.price})
-                    </button>
-                `;
+                container.innerHTML += `<button class="btn-pay" style="background:#34495e; color:white; font-size:16px;" onclick="addBrandNewFoodToOrder('${prod.name}', ${prod.price})">加點 ${prod.name} (+$${prod.price})</button>`;
             });
         }
 
-        // 核心邏輯：將一樣新嘅食物直接隊入去張雲端訂單度
         function addBrandNewFoodToOrder(foodName, foodPrice) {
             let currentOrder = rawOrdersData[currentEditingFirebaseKey];
             if (!currentOrder) return;
-
             if (!currentOrder.items) currentOrder.items = [];
-
-            // 檢查張單入面係咪原本就已經有呢樣嘢，有的話直接加數量，冇的話 push 入去
             const existingItem = currentOrder.items.find(i => i.name === foodName);
-            if (existingItem) {
-                existingItem.qty++;
-            } else {
-                currentOrder.items.push({ name: foodName, price: foodPrice, qty: 1 });
-            }
-
-            // 同步返上雲端
-            database.ref('orders/' + currentEditingFirebaseKey).set(currentOrder)
-            .then(() => {
+            if (existingItem) { existingItem.qty++; } 
+            else { currentOrder.items.push({ name: foodName, price: foodPrice, qty: 1 }); }
+            database.ref('orders/' + currentEditingFirebaseKey).set(currentOrder).then(() => {
                 document.getElementById('kitchenAddFoodModal').style.display = 'none';
             });
         }
 
-        function completeOrder(firebaseKey) {
-            database.ref('orders/' + firebaseKey).remove();
-        }
+        function completeOrder(firebaseKey) { database.ref('orders/' + firebaseKey).remove(); }
     </script>
 </body>
 </html>
