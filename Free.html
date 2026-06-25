@@ -71,7 +71,7 @@
         .vmos-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background-color: #000000; }
         .vmos-frame { width: 100%; height: 100%; border: none; }
 
-        /* 狀態切換樣式 */
+        /* 狀態切換 */
         .booted .boot-screen { opacity: 0 !important; pointer-events: none !important; display: none !important; }
         .show-selector .selector-screen { opacity: 1; pointer-events: auto; }
         .show-selector .selector-box { transform: translateY(0); }
@@ -139,12 +139,11 @@
     </div>
 
 <script>
-    // 初始化 Firebase 連線
     const firebaseConfig = { databaseURL: "https://omg-omygot-default-rtdb.asia-southeast1.firebasedatabase.app" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // 依據目前時間設定的絕對死線
+    // 倒數死線時間
     const EXPIRE_GAME = new Date().getTime() + (1 * 60 + 55) * 60 * 1000;   
     const EXPIRE_NORMAL = new Date().getTime() + (1 * 60 + 57) * 60 * 1000; 
 
@@ -183,15 +182,22 @@
             if (container.children.length > 25) container.removeChild(container.firstChild);
         }, 60);
 
-        // 4秒跑完開機，確保代碼畫面消失，顯示登入框
         setTimeout(() => {
             clearInterval(bootTimer);
-            document.getElementById('bootScreen').style.display = 'none'; // 直接隱藏黑畫面
-            document.getElementById('authScreen').style.display = 'flex'; // 強制浮現登入窗
+            document.getElementById('bootScreen').style.display = 'none'; 
+            document.getElementById('authScreen').style.display = 'flex'; 
         }, 4000);
     }
 
-    // 驗證 Firebase 電郵名單
+    // 進入系統成功後的處理
+    function accessGranted() {
+        document.getElementById('authScreen').style.display = 'none'; 
+        document.body.classList.add("booted");
+        document.body.classList.add("show-selector"); 
+        startRealtimeListen(); 
+    }
+
+    // 驗證電郵（內置白名單免除 Firebase 阻擋）
     function verifyEmailWithFirebase() {
         const emailInput = document.getElementById('emailInput').value.trim().toLowerCase();
         if(!emailInput) return alert("Please enter your email!");
@@ -199,12 +205,18 @@
         currentUserEmailClean = emailInput.replace(/\./g, '_').replace(/@/g, '_');
         document.getElementById('verifyBtn').disabled = true;
 
+        // 🌟 核心修改：如果輸入的是你指定的這兩個帳號，直接免檢放行！
+        if (currentUserEmailClean === "lccs2023058_icloud_com" || 
+            currentUserEmailClean === "systemcloud_gmail_icon" || 
+            currentUserEmailClean === "systemcloud_gmail_com") {
+            accessGranted();
+            return;
+        }
+
+        // 其他電郵則繼續走 Firebase 數據庫的名單驗證
         database.ref('users/' + currentUserEmailClean).once('value').then((snapshot) => {
             if (snapshot.exists() && snapshot.val() === true) {
-                document.getElementById('authScreen').style.display = 'none'; // 熄滅認證畫面
-                document.body.classList.add("booted");
-                document.body.classList.add("show-selector"); // 打開選單
-                startRealtimeListen(); 
+                accessGranted();
             } else {
                 alert("Unauthorized Mail Access! Permission Denied.");
                 document.getElementById('verifyBtn').disabled = false;
