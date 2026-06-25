@@ -1,287 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[root] LiveBoot - Firebase Sync Selector</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body {
-            background-color: #000000; color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
-            overflow: hidden; height: 100vh; width: 100vw; position: relative;
-        }
-
-        /* ======= 1. LiveBoot 畫面 ======= */
-        .boot-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000000; font-family: 'Courier New', Courier, monospace;
-            font-size: 11px; line-height: 1.2; display: flex; flex-direction: column;
-            justify-content: flex-end; padding: 12px; z-index: 10; transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
-        }
-        .android-watermark {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.45); font-size: 75px; font-weight: 300; letter-spacing: -2px; z-index: 5; font-family: sans-serif;
-        }
-        #logContainer { z-index: 6; width: 100%; }
-        .log-line { white-space: nowrap; width: 100%; text-align: left; margin-bottom: 1px; }
-        .error-fatal { color: #ff3333; font-weight: bold; }
-        .fatal-contact-box { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); z-index: 20; display: none; text-align: center; }
-
-        /* ======= 2. 電郵驗證彈窗 ======= */
-        .auth-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000;
-            z-index: 12; display: flex; justify-content: center; align-items: center; padding: 20px;
-        }
-        .auth-box { width: 100%; max-width: 360px; background-color: #1f1f1f; border-radius: 16px; padding: 28px; text-align: center; border: 1px solid #333; }
-        .auth-title { font-size: 18px; font-weight: 500; margin-bottom: 8px; }
-        .auth-subtitle { font-size: 12px; color: #888; margin-bottom: 20px; }
-        .auth-input { width: 100%; background-color: #2d2d2d; border: 1px solid #444; color: #fff; padding: 14px; border-radius: 10px; font-size: 14px; outline: none; text-align: center; margin-bottom: 16px; user-select: text !important; }
-        .auth-input:focus { border-color: #00a174; }
-        .auth-btn { width: 100%; background-color: #00a174; color: #000; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; }
-        .auth-btn:disabled { background-color: #444; color: #888; cursor: not-allowed; }
-
-        /* ======= 3. Android 原生選擇視窗 ======= */
-        .selector-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
-            z-index: 8; display: flex; justify-content: center; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .selector-box { width: 100%; max-width: 450px; background-color: #1f1f1f; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0, 1, 0.2, 1); }
-        .menu-panel { display: none; }
-        .menu-panel.active { display: block; }
-        .selector-title { font-size: 18px; color: #fff; margin-bottom: 20px; font-weight: 500; display: flex; align-items: center; }
-        .back-btn { background: none; border: none; color: #00a174; font-size: 20px; margin-right: 10px; cursor: pointer; }
-        
-        .option-btn {
-            width: 100%; background-color: #2d2d2d; border: 1px solid #3d3d3d; color: #fff; padding: 16px; border-radius: 14px; margin-bottom: 12px; font-size: 15px; text-align: left; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;
-        }
-        .option-btn:active:not(.disabled) { background-color: #3d3d3d; }
-        .option-btn.disabled { background-color: #151515; border-color: #222; color: #555; cursor: not-allowed; pointer-events: none; }
-
-        .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
-        .badge.available { background-color: #00a174; color: #000; }
-        .badge.in-use { background-color: #ffaa00; color: #000; }
-        .badge.expired { background-color: #331111; color: #ff3333; }
-
-        .contact-btn { display: inline-block; background-color: #00a174; color: #000000; padding: 12px 24px; border-radius: 20px; text-decoration: none; font-size: 14px; font-weight: bold; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,161,116,0.3); pointer-events: auto !important; }
-
-        /* ======= 4. 雲手機外嵌容器 ======= */
-        .vmos-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background-color: #000000; }
-        .vmos-frame { width: 100%; height: 100%; border: none; }
-
-        /* 狀態切換 */
-        .booted .boot-screen { opacity: 0 !important; pointer-events: none !important; display: none !important; }
-        .show-selector .selector-screen { opacity: 1; pointer-events: auto; }
-        .show-selector .selector-box { transform: translateY(0); }
-    </style>
-
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-</head>
-<body>
-
-    <div class="boot-screen" id="bootScreen">
-        <div class="android-watermark">android</div>
-        <div id="logContainer"></div>
-        <div class="fatal-contact-box" id="fatalContact">
-            <a href="mailto:lccs2023058@icloud.com?subject=VMOS%20Access%20Renewal" class="contact-btn">Contact Administrator</a>
-        </div>
-    </div>
-
-    <div class="auth-screen" id="authScreen" style="display: none;">
-        <div class="auth-box">
-            <div class="auth-title">System Authentication</div>
-            <div class="auth-subtitle">Please enter your authorized Mail to verify access</div>
-            <input type="email" class="auth-input" id="emailInput" placeholder="example@icloud.com">
-            <button class="auth-btn" id="verifyBtn" onclick="verifyEmailWithFirebase()">Verify & Open Systems</button>
-        </div>
-    </div>
-
-    <div class="selector-screen" id="selectorScreen">
-        <div class="selector-box">
-            <div class="menu-panel active" id="mainMenu">
-                <div class="selector-title">Select System Mode</div>
-                <button class="option-btn" id="btnGameMode" onclick="launchVM('game_mode', 'https://cloud.vsphone.com/screen/share/FFC7-0B02-A4E0-4ED5-8949-45F8-5BFB-A8C8')">
-                    <span>🎮 遊戲模式 (Game Mode)</span>
-                    <span class="badge available" id="badgeGame">Checking...</span>
-                </button>
-                <button class="option-btn" id="btnNormalMode" onclick="switchMenu('normalMenu')">
-                    <span>📱 普通模式 (Normal Mode)</span>
-                    <span class="badge available" id="badgeNormal">Available</span>
-                </button>
-            </div>
-
-            <div class="menu-panel" id="normalMenu">
-                <div class="selector-title">
-                    <button class="back-btn" onclick="switchMenu('mainMenu')">‹</button>
-                    Select VM OS Device
-                </div>
-                <button class="option-btn vmos-sub-btn" id="btnSubA" onclick="launchVM('normal_vma', 'https://cloud.vmoscloud.com/screen/share/E8F5-DD3C-9CBD-4FEB-BF19-C94E-643C-C072')">
-                    <span>Device VM-OS A</span>
-                    <span class="badge available" id="badgeSubA">Checking...</span>
-                </button>
-                <button class="option-btn vmos-sub-btn" id="btnSubB" onclick="launchVM('normal_vmb', 'https://cloud.vmoscloud.com/screen/share/5764-0A2D-3166-4D50-AA0B-9972-0786-8721')">
-                    <span>Device VM-OS B</span>
-                    <span class="badge available" id="badgeSubB">Checking...</span>
-                </button>
-            </div>
-            
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="mailto:lccs2023058@icloud.com?subject=VMOS%20Support" style="color: #00a174; font-size: 13px; text-decoration: none;">Need help? Contact Admin</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="vmos-container">
-        <iframe class="vmos-frame" id="vmosFrame" src="" allow="autoplay; fullscreen"></iframe>
-    </div>
-
-<script>
-    const firebaseConfig = { databaseURL: "https://omg-omygot-default-rtdb.asia-southeast1.firebasedatabase.app" };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-
-    // 倒數死線時間
-    const EXPIRE_GAME = new Date().getTime() + (1 * 60 + 55) * 60 * 1000;   
-    const EXPIRE_NORMAL = new Date().getTime() + (1 * 60 + 57) * 60 * 1000; 
-
-    let currentUserEmailClean = ""; 
-    let activeNodeKey = null; 
-    const container = document.getElementById('logContainer');
-
-    function checkAndBoot() {
-        if (new Date().getTime() > EXPIRE_NORMAL) { showExpiryError(); } else { startLiveBoot(); }
-    }
-
-    function showExpiryError() {
-        container.innerHTML = "";
-        document.getElementById('bootScreen').style.pointerEvents = "auto";
-        document.getElementById('bootScreen').style.display = "flex";
-        const lines = [
-            { type: 'error-fatal', text: 'E/LiveBoot( 5650): (error,because the server has expiry)' },
-            { type: 'error-fatal', text: 'E/LiveBoot( 5650): CRITICAL: System halt due to synchronization timeout.' }
-        ];
-        lines.forEach(log => {
-            const line = document.createElement('div'); line.className = `log-line ${log.type}`; line.innerText = log.text; container.appendChild(line);
-        });
-        document.getElementById('fatalContact').style.display = 'block';
-    }
-
-    function startLiveBoot() {
-        const logTemplates = [
-            "D/AndroidRuntime( 5650): Syncing connection protocols...",
-            "I/LoadBalancer(  102): Handshaking with Firebase cluster...",
-            "D/LiveBoot( 5650): Realtime listener operational."
-        ];
-        const bootTimer = setInterval(() => {
-            const line = document.createElement('div'); line.className = `log-line`;
-            line.innerText = logTemplates[Math.floor(Math.random() * logTemplates.length)];
-            container.appendChild(line);
-            if (container.children.length > 25) container.removeChild(container.firstChild);
-        }, 60);
-
-        setTimeout(() => {
-            clearInterval(bootTimer);
-            document.getElementById('bootScreen').style.display = 'none'; 
-            document.getElementById('authScreen').style.display = 'flex'; 
-        }, 4000);
-    }
-
-    // 進入系統成功後的處理
-    function accessGranted() {
-        document.getElementById('authScreen').style.display = 'none'; 
-        document.body.classList.add("booted");
-        document.body.classList.add("show-selector"); 
-        startRealtimeListen(); 
-    }
-
-    // 驗證電郵（內置白名單免除 Firebase 阻擋）
-    function verifyEmailWithFirebase() {
-        const emailInput = document.getElementById('emailInput').value.trim().toLowerCase();
-        if(!emailInput) return alert("Please enter your email!");
-        
-        currentUserEmailClean = emailInput.replace(/\./g, '_').replace(/@/g, '_');
-        document.getElementById('verifyBtn').disabled = true;
-
-        // 🌟 核心修改：如果輸入的是你指定的這兩個帳號，直接免檢放行！
-        if (currentUserEmailClean === "lccs2023058_icloud_com" || 
-            currentUserEmailClean === "systemcloud_gmail_icon" || 
-            currentUserEmailClean === "systemcloud_gmail_com") {
-            accessGranted();
-            return;
-        }
-
-        // 其他電郵則繼續走 Firebase 數據庫的名單驗證
-        database.ref('users/' + currentUserEmailClean).once('value').then((snapshot) => {
-            if (snapshot.exists() && snapshot.val() === true) {
-                accessGranted();
-            } else {
-                alert("Unauthorized Mail Access! Permission Denied.");
-                document.getElementById('verifyBtn').disabled = false;
-            }
-        }).catch(() => {
-            alert("Firebase connection error.");
-            document.getElementById('verifyBtn').disabled = false;
-        });
-    }
-
-    // 監聽 Firebase 佔用狀態
-    function startRealtimeListen() {
-        database.ref('status').on('value', (snapshot) => {
-            const status = snapshot.val() || {};
-            const now = new Date().getTime();
-
-            // 🎮 遊戲模式
-            if (now > EXPIRE_GAME) { setBtnState('btnGameMode', 'badgeGame', 'Expired', 'expired', true); }
-            else if (status.game_mode?.in_use && status.game_mode?.current_user !== currentUserEmailClean) {
-                setBtnState('btnGameMode', 'badgeGame', 'In Use (有人用緊)', 'in-use', true);
-            } else { setBtnState('btnGameMode', 'badgeGame', 'Available', 'available', false); }
-
-            // 📱 普通模式 A
-            if (now > EXPIRE_NORMAL) { setBtnState('btnSubA', 'badgeSubA', 'Expired', 'expired', true); }
-            else if (status.normal_vma?.in_use && status.normal_vma?.current_user !== currentUserEmailClean) {
-                setBtnState('btnSubA', 'badgeSubA', 'In Use', 'in-use', true);
-            } else { setBtnState('btnSubA', 'badgeSubA', 'Ready', 'available', false); }
-
-            // 📱 普通模式 B
-            if (now > EXPIRE_NORMAL) { setBtnState('btnSubB', 'badgeSubB', 'Expired', 'expired', true); }
-            else if (status.normal_vmb?.in_use && status.normal_vmb?.current_user !== currentUserEmailClean) {
-                setBtnState('btnSubB', 'badgeSubB', 'In Use', 'in-use', true);
-            } else { setBtnState('btnSubB', 'badgeSubB', 'Ready', 'available', false); }
-        });
-    }
-
-    function setBtnState(btnId, badgeId, text, className, isDisable) {
-        const btn = document.getElementById(btnId); const badge = document.getElementById(badgeId);
-        if(isDisable) btn.classList.add('disabled'); else btn.classList.remove('disabled');
-        badge.innerText = text; badge.className = `badge ${className}`;
-    }
-
-    function launchVM(nodeKey, url) {
-        activeNodeKey = nodeKey;
-        database.ref('status/' + nodeKey).set({
-            in_use: true,
-            current_user: currentUserEmailClean
-        }).then(() => {
-            document.getElementById('vmosFrame').src = url;
-            document.body.classList.remove("show-selector");
-        });
-    }
-
-    window.addEventListener('beforeunload', () => {
-        if (activeNodeKey) {
-            database.ref('status/' + activeNodeKey).set({ in_use: false, current_user: "" });
-        }
-    });
+    // ...（上面原本嘅 launchVM, switchMenu 嗰堆代碼維持不變）...
 
     function switchMenu(menuId) {
         document.querySelectorAll('.menu-panel').forEach(menu => menu.classList.remove('active'));
         document.getElementById(menuId).classList.add('active');
     }
 
-    checkAndBoot();
+
+    // ⬇️ ⬇️ ⬇️ 將段代碼貼喺呢度（checkAndBoot 的上方）⬇️ ⬇️ ⬇️
+    
+    // 加上這段代碼，Firebase 一有錯就會喺手機彈 Alert 話你知！
+    database.ref('.info/connected').on('value', function(snap) {
+        if (snap.val() === false) {
+            console.log("正在嘗試連線到 Firebase 伺服器...");
+        }
+    });
+
+    // 如果讀取 status 出錯，直接彈窗
+    database.ref('status').once('value').then(function() {
+        console.log("Status 讀取測試成功！");
+    }).catch(function(error) {
+        if (error) {
+            alert("Firebase 連線失敗原因: " + error.message);
+        }
+    });
+
+    // ⬆️ ⬆️ ⬆️ 貼到呢度完結 ⬆️ ⬆️ ⬆️
+
+
+    checkAndBoot(); // 呢行原本就在最底，維持不動
 </script>
 </body>
 </html>
