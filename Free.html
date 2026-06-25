@@ -18,6 +18,7 @@
             background-color: #000000; font-family: 'Courier New', Courier, monospace;
             font-size: 11px; line-height: 1.2; display: flex; flex-direction: column;
             justify-content: flex-end; padding: 12px; z-index: 10; transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
         }
         .android-watermark {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -31,12 +32,12 @@
         /* ======= 2. 電郵驗證彈窗 ======= */
         .auth-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000;
-            z-index: 9; display: flex; justify-content: center; align-items: center; padding: 20px;
+            z-index: 12; display: flex; justify-content: center; align-items: center; padding: 20px;
         }
         .auth-box { width: 100%; max-width: 360px; background-color: #1f1f1f; border-radius: 16px; padding: 28px; text-align: center; border: 1px solid #333; }
         .auth-title { font-size: 18px; font-weight: 500; margin-bottom: 8px; }
         .auth-subtitle { font-size: 12px; color: #888; margin-bottom: 20px; }
-        .auth-input { width: 100%; background-color: #2d2d2d; border: 1px solid #444; color: #fff; padding: 14px; border-radius: 10px; font-size: 14px; outline: none; text-align: center; margin-bottom: 16px; }
+        .auth-input { width: 100%; background-color: #2d2d2d; border: 1px solid #444; color: #fff; padding: 14px; border-radius: 10px; font-size: 14px; outline: none; text-align: center; margin-bottom: 16px; user-select: text !important; }
         .auth-input:focus { border-color: #00a174; }
         .auth-btn { width: 100%; background-color: #00a174; color: #000; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; }
         .auth-btn:disabled { background-color: #444; color: #888; cursor: not-allowed; }
@@ -70,7 +71,8 @@
         .vmos-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background-color: #000000; }
         .vmos-frame { width: 100%; height: 100%; border: none; }
 
-        .booted .boot-screen { opacity: 0; pointer-events: none; }
+        /* 狀態切換樣式 */
+        .booted .boot-screen { opacity: 0 !important; pointer-events: none !important; display: none !important; }
         .show-selector .selector-screen { opacity: 1; pointer-events: auto; }
         .show-selector .selector-box { transform: translateY(0); }
     </style>
@@ -142,12 +144,12 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // 依據 16:45 精確設定的絕對死線
-    const EXPIRE_GAME = new Date().getTime() + (1 * 60 + 55) * 60 * 1000;   // 1小時55分後
-    const EXPIRE_NORMAL = new Date().getTime() + (1 * 60 + 57) * 60 * 1000; // 1小時57分後
+    // 依據目前時間設定的絕對死線
+    const EXPIRE_GAME = new Date().getTime() + (1 * 60 + 55) * 60 * 1000;   
+    const EXPIRE_NORMAL = new Date().getTime() + (1 * 60 + 57) * 60 * 1000; 
 
     let currentUserEmailClean = ""; 
-    let activeNodeKey = null; // 紀錄目前正在使用哪部機
+    let activeNodeKey = null; 
     const container = document.getElementById('logContainer');
 
     function checkAndBoot() {
@@ -157,6 +159,7 @@
     function showExpiryError() {
         container.innerHTML = "";
         document.getElementById('bootScreen').style.pointerEvents = "auto";
+        document.getElementById('bootScreen').style.display = "flex";
         const lines = [
             { type: 'error-fatal', text: 'E/LiveBoot( 5650): (error,because the server has expiry)' },
             { type: 'error-fatal', text: 'E/LiveBoot( 5650): CRITICAL: System halt due to synchronization timeout.' }
@@ -180,9 +183,11 @@
             if (container.children.length > 25) container.removeChild(container.firstChild);
         }, 60);
 
+        // 4秒跑完開機，確保代碼畫面消失，顯示登入框
         setTimeout(() => {
             clearInterval(bootTimer);
-            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('bootScreen').style.display = 'none'; // 直接隱藏黑畫面
+            document.getElementById('authScreen').style.display = 'flex'; // 強制浮現登入窗
         }, 4000);
     }
 
@@ -196,9 +201,9 @@
 
         database.ref('users/' + currentUserEmailClean).once('value').then((snapshot) => {
             if (snapshot.exists() && snapshot.val() === true) {
-                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('authScreen').style.display = 'none'; // 熄滅認證畫面
                 document.body.classList.add("booted");
-                document.body.classList.add("show-selector");
+                document.body.classList.add("show-selector"); // 打開選單
                 startRealtimeListen(); 
             } else {
                 alert("Unauthorized Mail Access! Permission Denied.");
@@ -242,7 +247,6 @@
         badge.innerText = text; badge.className = `badge ${className}`;
     }
 
-    // 進入雲手機並寫入佔用狀態
     function launchVM(nodeKey, url) {
         activeNodeKey = nodeKey;
         database.ref('status/' + nodeKey).set({
@@ -254,7 +258,6 @@
         });
     }
 
-    // 當關閉網頁或離線時，自動釋放佔用狀態
     window.addEventListener('beforeunload', () => {
         if (activeNodeKey) {
             database.ref('status/' + activeNodeKey).set({ in_use: false, current_user: "" });
