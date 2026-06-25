@@ -41,6 +41,7 @@
         .auth-input:focus { border-color: #00a174; }
         .auth-btn { width: 100%; background-color: #00a174; color: #000; border: none; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; }
         .auth-btn:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+        .debug-url-info { font-size: 10px; color: #666; margin-top: 15px; word-break: break-all; }
 
         /* ======= 3. Android 原生選擇視窗 ======= */
         .selector-screen {
@@ -95,6 +96,7 @@
             <div class="auth-subtitle">Please enter your authorized Mail to verify access</div>
             <input type="email" class="auth-input" id="emailInput" placeholder="example@icloud.com">
             <button class="auth-btn" id="verifyBtn" onclick="verifyEmailWithFirebase()">Verify & Open Systems</button>
+            <div class="debug-url-info" id="debugUrlDisplay">Connecting...</div>
         </div>
     </div>
 
@@ -138,7 +140,10 @@
     </div>
 
 <script>
-    const firebaseConfig = { databaseURL: "https://omg-omygot-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    // 🌟 請確保這裏的網址跟你在手機觀看的 Firebase Console 頂部網址一模一樣！
+    const TARGET_DB_URL = "https://omg-omygot-default-rtdb.asia-southeast1.firebasedatabase.app";
+    
+    const firebaseConfig = { databaseURL: TARGET_DB_URL };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
@@ -150,6 +155,7 @@
     const container = document.getElementById('logContainer');
 
     function checkAndBoot() {
+        document.getElementById('debugUrlDisplay').innerText = "Connected DB: " + TARGET_DB_URL;
         if (new Date().getTime() > EXPIRE_NORMAL) { showExpiryError(); } else { startLiveBoot(); }
     }
 
@@ -222,6 +228,17 @@
     }
 
     function startRealtimeListen() {
+        // 🌟 自動防空機制：如果發現 Firebase 數據是空的，直接幫你初始化填入數據！
+        database.ref('status').once('value').then((snap) => {
+            if (!snap.exists() || !snap.val().game_mode) {
+                database.ref('status').set({
+                    game_mode: { in_use: false, current_user: "" },
+                    normal_vma: { in_use: false, current_user: "" },
+                    normal_vmb: { in_use: false, current_user: "" }
+                });
+            }
+        });
+
         database.ref('status').on('value', (snapshot) => {
             const status = snapshot.val() || {};
             const now = new Date().getTime();
@@ -270,16 +287,6 @@
         document.querySelectorAll('.menu-panel').forEach(menu => menu.classList.remove('active'));
         document.getElementById(menuId).classList.add('active');
     }
-
-    // 連線與讀取狀態 Debug 測試
-    database.ref('.info/connected').on('value', function(snap) {
-        if (snap.val() === false) { console.log("正在嘗試連線到 Firebase..."); }
-    });
-    database.ref('status').once('value').then(function() {
-        console.log("Status 讀取成功！");
-    }).catch(function(error) {
-        if (error) { alert("Firebase 連線失敗原因: " + error.message); }
-    });
 
     checkAndBoot();
 </script>
