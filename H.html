@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>撳 Enter 跳轉網頁</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        kbd {
+            background-color: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 2px 0 0 rgba(255,255,255,.7) inset;
+            color: #333;
+            display: inline-block;
+            font-size: .85em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>請喺 Keyboard 撳 <kbd>Enter</kbd> 鍵</h1>
+        <p>撳完之後就會自動跳轉去教學網頁。</p>
+    </div>
+
+    <script>
+        // 監聽成個網頁嘅 keydown (撳鍵) 事件
+        document.addEventListener('keydown', function(event) {
+            // 檢查被撳嘅鍵係咪 "Enter"
+            if (event.key === 'Enter') {
+                // 跳轉去指定嘅網址
+                window.location.href = 'https://getpublicip.com/guides/find-your-public-ip-address/find-your-ip-address-on-windows';
+            }
+        });
+    </script>
+
+</body>
+</html>
