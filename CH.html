@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head><script src="https://unpkg.com/html5-qrcode"></script>// ====== 職員登入 ======
+const STAFF_PASSWORD = "123456"; // 記得改成你自己的密碼
+let staffLoggedIn = false;
+
+function staffLogin() {
+    const pwd = prompt("請輸入職員密碼");
+    if (pwd === STAFF_PASSWORD) {
+        staffLoggedIn = true;
+        alert("✅ 登入成功");
+    } else {
+        alert("❌ 密碼錯誤");
+    }
+}
+
+// 第一次開啟要求登入
+staffLogin();
+
+// ====== 每日只可加一次飛 ======
+function todayKey() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+// 取代原本 addPoint()
+function addPoint(i) {
+
+    if (!staffLoggedIn) {
+        alert("請先登入職員帳號");
+        return;
+    }
+
+    const key = todayKey();
+
+    if (!members[i].history) {
+        members[i].history = {};
+    }
+
+    if (members[i].history[key]) {
+        alert("⚠️ 今日已經加過飛");
+        return;
+    }
+
+    members[i].points++;
+    members[i].history[key] = true;
+
+    save();
+
+    rainbowBurst();
+
+    if (members[i].points >= 10) {
+        alert("🎁 已集滿 10 飛，可以換禮物！");
+    }
+
+    render()<button onclick="showHistory(${i})">
+查看紀錄
+</button>;
+}
+
+// ====== 顯示加飛紀錄 ======
+function showHistory(index){
+
+    const member = members[index];
+
+    if(!member.history){
+        alert("暫時沒有紀錄");
+        return;
+    }
+
+    let text = "📜 加飛日期：\n\n";
+
+    Object.keys(member.history).forEach(date=>{
+        text += date + "\n";
+    });
+
+    alert(text);
+
+}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🌈 Rainbow Rewards</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#f3f6fb;
+}
+
+header{
+background:linear-gradient(90deg,#ff4d4d,#ffb84d,#ffee58,#66cc66,#33b5e5,#9966ff);
+color:white;
+padding:25px;
+text-align:center;
+box-shadow:0 3px 10px rgba(0,0,0,.2);
+}
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+border-radius:15px;
+padding:20px;
+margin-bottom:20px;
+box-shadow:0 5px 15px rgba(0,0,0,.1);
+}
+
+input{
+width:100%;
+padding:12px;
+margin:8px 0;
+border:1px solid #ddd;
+border-radius:8px;
+font-size:16px;
+}
+
+button{
+padding:12px 20px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:16px;
+margin:5px;
+}
+
+.add{
+background:#27ae60;
+color:white;
+}
+
+.minus{
+background:#e74c3c;
+color:white;
+}
+
+.save{
+background:#3498db;
+color:white;
+}
+
+.member{
+padding:15px;
+margin-top:10px;
+border:1px solid #ddd;
+border-radius:10px;
+}
+
+.points{
+font-size:40px;
+font-weight:bold;
+color:#ff6600;
+margin:15px 0;
+}
+
+canvas{
+position:fixed;
+left:0;
+top:0;
+pointer-events:none;
+}
+
+#qrcode{
+margin-top:15px;
+display:flex;
+justify-content:center;
+}
+</style>
+</head>
+
+<div class="card">
+
+<h2>📷 掃描會員 QR Code</h2>
+
+<div id="reader" style="width:320px;margin:auto;"></div>
+
+<p id="scanResult">等待掃描...</p>
+
+</div><body>
+
+<header>
+<h1>🌈 Rainbow Rewards</h1>
+<p>會員 QR 儲飛系統</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h2>新增會員</h2>
+
+<input id="name" placeholder="會員姓名">
+
+<input id="phone" placeholder="電話">
+
+<button class="save" onclick="addMember()">
+新增會員
+</button>
+
+</div>
+
+<div id="members"></div>
+
+</div>
+
+<canvas id="rainbow"></canvas>
+
+<script>
+
+let members=JSON.parse(localStorage.getItem("members"))||[];
+
+function save(){
+localStorage.setItem("members",JSON.stringify(members));
+}
+
+function addMember(){
+
+let n=document.getElementById("name").value.trim();
+
+let p=document.getElementById("phone").value.trim();
+
+if(!n||!p){
+alert("請輸入資料");
+return;
+}
+
+members.push({
+id:Date.now(),
+name:n,
+phone:p,
+points:0
+});
+
+save();
+
+document.getElementById("name").value="";
+document.getElementById("phone").value="";
+
+render();
+
+}
+
+function render(){
+
+let html="";
+
+members.forEach((m,i)=>{
+
+html+=`
+<div class="card">
+
+<h2>${m.name}</h2>
+
+電話：${m.phone}
+
+<div class="points">${m.points}</div>
+
+<button class="add" onclick="addPoint(${i})">
++1 飛
+</button>
+
+<button class="minus" onclick="minusPoint(${i})">
+-1 飛
+</button>
+
+<div id="qr${m.id}" class="qrcode"></div>
+
+</div>
+`;
+
+});
+
+document.getElementById("members").innerHTML=html;
+
+// 第 2 部分會加入 QR Code 生成功能
+}
+
+render();function addPoint(i){
+
+    members[i].points++;
+
+    save();
+
+    rainbowBurst();
+
+    if(members[i].points>=10){
+
+        alert(
+            members[i].name+
+            " 已集滿 10 飛，可以換禮物！🎉"
+        );
+
+    }
+
+    render();
+
+}
+
+function minusPoint(i){
+
+    if(members[i].points>0){
+
+        members[i].points--;
+
+        save();
+
+        render();
+
+    }
+
+}
+
+function rainbowBurst(){
+
+const canvas=document.getElementById("rainbow");
+
+const ctx=canvas.getContext("2d");
+
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let particles=[];
+
+const colors=[
+"#ff4d4d",
+"#ff9800",
+"#ffee58",
+"#4caf50",
+"#2196f3",
+"#9c27b0"
+];
+
+for(let i=0;i<120;i++){
+
+particles.push({
+
+x:window.innerWidth/2,
+
+y:120,
+
+vx:(Math.random()-0.5)*8,
+
+vy:Math.random()*-8,
+
+size:4+Math.random()*6,
+
+color:colors[Math.floor(Math.random()*colors.length)],
+
+life:80
+
+});
+
+}
+
+function animate(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+particles.forEach(p=>{
+
+ctx.fillStyle=p.color;
+
+ctx.beginPath();
+
+ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+
+ctx.fill();
+
+p.x+=p.vx;
+
+p.y+=p.vy;
+
+p.vy+=0.15;
+
+p.life--;
+
+});
+
+particles=particles.filter(p=>p.life>0);
+
+if(particles.length){
+
+requestAnimationFrame(animate);
+
+}else{
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+}
+
+}
+
+animate();
+
+}
+
+// 如果已載入 QRCode.js，會自動產生會員 QR Code
+function drawQrCodes(){
+
+if(typeof QRCode==="undefined") return;
+
+members.forEach(m=>{
+
+const box=document.getElementById("qr"+m.id);
+
+if(!box) return;
+
+box.innerHTML="";
+
+new QRCode(box,{
+text:JSON.stringify({
+id:m.id,
+name:m.name
+}),
+width:120,
+height:120
+});
+
+});
+
+}
+
+// 覆寫 render() 最後加入：
+const oldRender=render;
+
+render=function(){
+
+oldRender();
+
+drawQrCodes();
+
+};
+
+</script>function onScanSuccess(decodedText){
+
+let data;
+
+try{
+
+data=JSON.parse(decodedText);
+
+}catch(e){
+
+alert("不是有效會員 QR Code");
+
+return;
+
+}
+
+let member=members.find(m=>m.id==data.id);
+
+if(!member){
+
+alert("找不到會員");
+
+return;
+
+}
+
+member.points++;
+
+save();
+
+rainbowBurst();
+
+render();
+
+document.getElementById("scanResult").innerHTML=
+"✅ 已為 "+member.name+" 增加 1 飛";
+
+if(member.points>=10){
+
+alert(member.name+" 已集滿 10 飛，可以換禮物！🎉");
+
+}
+
+}
+
+if(typeof Html5Qrcode!="undefined"){
+
+const html5QrCode=new Html5Qrcode("reader");
+
+html5QrCode.start(
+
+{ facingMode:"environment" },
+
+{
+
+fps:10,
+
+qrbox:250
+
+},
+
+onScanSuccess
+
+);
+
+}
