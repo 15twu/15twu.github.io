@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>終極四合一：全功能難度大師 Obby (主角 1.5x 放大版)</title>
+    <title>終極四合一：全功能難度大師 Obby (主角 1.5x 放大版 + 星星加速)</title>
     <style>
         body {
             margin: 0; padding: 0;
@@ -21,7 +21,7 @@
             display: flex; justify-content: space-between; align-items: center;
             pointer-events: none; z-index: 5;
         }
-        .info-panel { display: flex; gap: 10px; pointer-events: auto; }
+        .info-panel { display: flex; gap: 10px; pointer-events: auto; align-items: center; }
         #stageInfo {
             font-size: 20px; font-weight: bold; color: #fff;
             background: rgba(0,0,0,0.6); padding: 8px 18px;
@@ -32,6 +32,17 @@
             background: #4fc3f7; padding: 8px 15px; border-radius: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
+        /* 星星 Buff UI */
+        #starBuffUI {
+            display: none;
+            font-size: 16px; font-weight: bold; color: #fff;
+            background: linear-gradient(45deg, #ffd700, #ff9800);
+            padding: 8px 15px; border-radius: 20px;
+            box-shadow: 0 0 10px #ffd700;
+            animation: pulse 0.5s infinite alternate;
+        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+
         .controls-panel { display: flex; gap: 10px; pointer-events: auto; }
         .menu-btn {
             background-color: #ff4081; color: white; border: none;
@@ -94,6 +105,7 @@
         <div class="info-panel">
             <div id="stageInfo">Stage: 1 / 100</div>
             <div id="diffLabel">P.3 輕鬆模式</div>
+            <div id="starBuffUI">⭐ 超級加速中! 5s</div>
         </div>
         <div class="controls-panel">
             <button class="menu-btn diff-btn" onclick="openDiffMenu()">切換難度 ⚙️</button>
@@ -147,7 +159,8 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const playerImg = new Image();
-playerImg.src = 'https://lccs.edu.hk/img/support-and-ethos/moral-and-civic/characters/charles-2.png';
+// 角色圖片已更新為指定網址
+playerImg.src = 'https://15twu.github.io/obby-act.JPG';
 
 let gravity = 0.44; 
 let gameActive = true;
@@ -155,18 +168,34 @@ let currentStage = 1;
 const maxStages = 100;
 let currentDiff = 1; 
 
+let baseSpeed = 4.8;
+let baseJump = 10.4;
+
 const player = {
     x: 60, y: 200,
-    // 原始尺寸大小乘上 1.5 倍 (原本 32x42 變成 48x63)
     width: 48, height: 63, 
     xVelocity: 0, yVelocity: 0,
     speed: 4.8, jumpForce: 10.4,
-    isGrounded: false
+    isGrounded: false,
+    starTimeLeft: 0
 };
 
 const keys = { left: false, right: false, space: false };
 let obstacles = [];
+let stars = [];
 let time = 0;
+
+// 電腦鍵盤支援
+window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") keys.left = true;
+    if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") keys.right = true;
+    if (e.key === " " || e.key === "ArrowUp" || e.key === "w" || e.key === "W") keys.space = true;
+});
+window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") keys.left = false;
+    if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") keys.right = false;
+    if (e.key === " " || e.key === "ArrowUp" || e.key === "w" || e.key === "W") keys.space = false;
+});
 
 function setDifficulty(diffNum) {
     currentDiff = diffNum;
@@ -179,15 +208,14 @@ function setDifficulty(diffNum) {
     document.body.style.backgroundColor = bgColors[diffNum];
     canvas.style.borderColor = borderColors[diffNum];
 
-    // 所有模式下嘅主角尺寸全部按比例放大 1.5 倍
-    if (diffNum === 1) { // P.3
-        gravity = 0.44; player.width = 48; player.height = 63; player.speed = 4.8; player.jumpForce = 10.4;
-    } else if (diffNum === 2) { // 中等
-        gravity = 0.46; player.width = 48; player.height = 63; player.speed = 4.8; player.jumpForce = 10.5;
-    } else if (diffNum === 3) { // 地獄
-        gravity = 0.52; player.width = 36; player.height = 48; player.speed = 5.2; player.jumpForce = 11.2;
-    } else if (diffNum === 4) { // 絕望
-        gravity = 0.58; player.width = 27; player.height = 36; player.speed = 5.5; player.jumpForce = 12.0;
+    if (diffNum === 1) { 
+        gravity = 0.44; player.width = 48; player.height = 63; baseSpeed = 4.8; baseJump = 10.4;
+    } else if (diffNum === 2) { 
+        gravity = 0.46; player.width = 48; player.height = 63; baseSpeed = 4.8; baseJump = 10.5;
+    } else if (diffNum === 3) { 
+        gravity = 0.52; player.width = 36; player.height = 48; baseSpeed = 5.2; baseJump = 11.2;
+    } else if (diffNum === 4) { 
+        gravity = 0.58; player.width = 27; player.height = 36; baseSpeed = 5.5; baseJump = 12.0;
     }
 
     closeModal('diffMenu');
@@ -197,10 +225,10 @@ function setDifficulty(diffNum) {
 
 function generateStage(stageNum) {
     obstacles = [];
+    stars = [];
     time = 0;
     
     let baseProgress = stageNum / 100;
-    // 配合角色放大，起點平台稍微拓寬，站得更穩
     obstacles.push({ x: 0, y: 320, width: currentDiff<=2?180:90, height: 80, type: 'safe', color: '#81c784' });
     obstacles.push({ x: 0, y: 393, width: 8000, height: 10, type: 'lava', color: '#ff5722' });
     
@@ -248,6 +276,17 @@ function generateStage(stageNum) {
             moving: isMoving, range: currentDiff===2?30:45+(baseProgress*25), speed: currentDiff===2?0.03:0.06+(baseProgress*0.04),
             startY: currentY, disappearing: isDisappearing
         });
+
+        if ((i === 2 || Math.random() < 0.4) && i > 0 && i < platformCount - 1) {
+            stars.push({
+                x: currentX + platWidth / 2 - 12,
+                y: currentY - 35,
+                width: 25,
+                height: 25,
+                collected: false
+            });
+        }
+
         currentX += platWidth;
     }
     
@@ -292,14 +331,59 @@ function nextStage() {
     }
 }
 
-function resetPlayer() { player.x = 60; player.y = 200; player.xVelocity = 0; player.yVelocity = 0; }
+function resetPlayer() { 
+    player.x = 60; player.y = 200; player.xVelocity = 0; player.yVelocity = 0; 
+    player.starTimeLeft = 0;
+}
 function checkCollision(rect1, rect2) { return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y; }
 
-generateStage(currentStage);
+function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+    let rot = Math.PI / 2 * 3;
+    let x = cx;
+    let y = cy;
+    let step = Math.PI / spikes;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+}
+
+setDifficulty(1);
 
 function update() {
     if (!gameActive) return;
     time += 1;
+
+    if (player.starTimeLeft > 0) {
+        player.starTimeLeft--;
+        player.speed = baseSpeed * 1.4;
+        player.jumpForce = baseJump * 1.25;
+        
+        const buffUI = document.getElementById("starBuffUI");
+        buffUI.style.display = "block";
+        buffUI.innerText = "⭐ 超級加速中! " + Math.ceil(player.starTimeLeft / 60) + "s";
+    } else {
+        player.speed = baseSpeed;
+        player.jumpForce = baseJump;
+        document.getElementById("starBuffUI").style.display = "none";
+    }
 
     let flashRate = currentDiff === 4 ? 80 : 110;
     let flashVisible = currentDiff === 4 ? 20 : 35;
@@ -318,6 +402,13 @@ function update() {
     if (player.y > canvas.height) resetPlayer();
 
     player.isGrounded = false;
+
+    stars.forEach(star => {
+        if (!star.collected && checkCollision(player, star)) {
+            star.collected = true;
+            player.starTimeLeft = 300;
+        }
+    });
 
     obstacles.forEach(obj => {
         if (obj.disappearing && !isBlockVisible) return;
@@ -341,12 +432,30 @@ function update() {
         else { ctx.fillStyle = obj.color; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); }
     });
 
-    // 畫 1.5 倍放大版主角
+    stars.forEach(star => {
+        if (!star.collected) {
+            let floatOffsetY = Math.sin(time * 0.1) * 4;
+            drawStar(star.x + 12, star.y + 12 + floatOffsetY, 5, 12, 6, '#ffd700');
+        }
+    });
+
+    if (player.starTimeLeft > 0) {
+        ctx.save();
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 20;
+    }
+
     try {
-        ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+        if (playerImg.complete && playerImg.naturalWidth !== 0) {
+            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+        } else {
+            ctx.fillStyle = "#00bcd4"; ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
     } catch(e) {
         ctx.fillStyle = "#00bcd4"; ctx.fillRect(player.x, player.y, player.width, player.height);
     }
+
+    if (player.starTimeLeft > 0) ctx.restore();
 
     ctx.restore();
     requestAnimationFrame(update);
