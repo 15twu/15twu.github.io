@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>終極四合一：全功能難度大師 Obby (主角 1.5x 放大版 + 星星加速)</title>
+    <title>終極四合一：全功能難度大師 Obby (去白底角色版)</title>
     <style>
         body {
             margin: 0; padding: 0;
@@ -15,7 +15,6 @@
             overflow: hidden; touch-action: none;
             transition: background 0.3s;
         }
-        /* 頂部工具列 */
         .top-bar {
             position: absolute; top: 15px; left: 20px; right: 20px;
             display: flex; justify-content: space-between; align-items: center;
@@ -32,7 +31,6 @@
             background: #4fc3f7; padding: 8px 15px; border-radius: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        /* 星星 Buff UI */
         #starBuffUI {
             display: none;
             font-size: 16px; font-weight: bold; color: #fff;
@@ -158,9 +156,34 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const playerImg = new Image();
-// 角色圖片已更新為指定網址
-playerImg.src = 'https://15twu.github.io/obby-act.JPG';
+const rawPlayerImg = new Image();
+rawPlayerImg.crossOrigin = "Anonymous";
+rawPlayerImg.src = 'https://15twu.github.io/obby-act.JPG';
+
+// 用於儲存處理後（濾除白底）的圖片 Canvas
+let processedPlayerCanvas = null;
+
+// 自動濾除白色底色（去背處理）
+rawPlayerImg.onload = function() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = rawPlayerImg.width;
+    tempCanvas.height = rawPlayerImg.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    tempCtx.drawImage(rawPlayerImg, 0, 0);
+    const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const data = imgData.data;
+    
+    // 遍歷所有像素，將接近純白的像素 ALPHA 設為 0 (透明)
+    for (let i = 0; i < data.length; i += 4) {
+        let r = data[i], g = data[i+1], b = data[i+2];
+        if (r > 220 && g > 220 && b > 220) {
+            data[i+3] = 0; 
+        }
+    }
+    tempCtx.putImageData(imgData, 0, 0);
+    processedPlayerCanvas = tempCanvas;
+};
 
 let gravity = 0.44; 
 let gameActive = true;
@@ -185,7 +208,6 @@ let obstacles = [];
 let stars = [];
 let time = 0;
 
-// 電腦鍵盤支援
 window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") keys.left = true;
     if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") keys.right = true;
@@ -445,9 +467,12 @@ function update() {
         ctx.shadowBlur = 20;
     }
 
+    // 繪製去除白底後的角色圖案
     try {
-        if (playerImg.complete && playerImg.naturalWidth !== 0) {
-            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+        if (processedPlayerCanvas) {
+            ctx.drawImage(processedPlayerCanvas, player.x, player.y, player.width, player.height);
+        } else if (rawPlayerImg.complete && rawPlayerImg.naturalWidth !== 0) {
+            ctx.drawImage(rawPlayerImg, player.x, player.y, player.width, player.height);
         } else {
             ctx.fillStyle = "#00bcd4"; ctx.fillRect(player.x, player.y, player.width, player.height);
         }
